@@ -163,6 +163,18 @@ dialog menu{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:10px 0 0}
 .card.arq h2{background:#455a64;color:#fff}
 .card.arq p{margin:0 0 8px}
 .card.arq .lin2{display:flex;flex-wrap:wrap;gap:6px}
+.sis{display:block;margin-top:2px;font-size:12px;font-weight:600;color:#455a64}
+li.dica{list-style:none;font-size:13px;background:#fffbe6;border-left:3px solid var(--amar);color:#4e3b00;padding:3px 8px;border-radius:4px;margin-top:1px;margin-bottom:4px}
+.t-opc{background:#78909c}
+.passo.pna{background:#f1f3f5}
+.passo.pna .pt{color:#78909c;text-decoration:line-through}
+.quando.cinza{color:#78909c}
+.passo .mini{margin-left:30px}
+.pz{border-radius:8px;padding:3px 10px;font-weight:700;font-size:13px;border:2px solid}
+.pz.verde{border-color:var(--verde);background:var(--verde-bg);color:var(--verde)}
+.pz.lara{border-color:var(--lara);background:var(--lara-bg);color:var(--lara)}
+.pz.verm{border-color:var(--verm);background:var(--verm);color:#fff}
+.sug{background:var(--amar-bg);border:1px dashed var(--amar);border-radius:6px;padding:4px 8px;margin:4px 0;font-size:13px}
 </style>
 </head>
 <body>
@@ -196,11 +208,11 @@ dialog menu{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:10px 0 0}
     <code>cond=baixada</code> (ou <code>outraUF</code>, <code>anexoV</code>) mostra a etapa só nessa condição;
     <code>espera=campo:dias</code> cria um prazo (trava as etapas seguintes);
     <code>campos=os,processoGRP!</code> mostra campos de dados na etapa (<code>!</code> = obrigatório para concluir);
-    <code>depende=10,11</code> avisa se essas etapas não estiverem prontas; <code>exigeBaixada</code> pede confirmação se a situação da empresa não foi verificada.<br>
+    <code>depende=10,11</code> avisa se essas etapas não estiverem prontas; <code>exigeBaixada</code> pede confirmação se a situação da empresa não foi verificada; <code>sistema=GFT</code> mostra o sistema/usuário da etapa; <code>encerra=fiscalizacao</code> (ou <code>decadencia</code>) para de contar esse prazo quando a etapa é concluída.<br>
     Depois vêm: <code>! texto</code> (alerta vermelho), <code>i texto</code> (informação), <code>e chave</code> (modelo de e-mail pronto para copiar) e os passos
     <code>- passo</code>, <code>-- subpasso</code>, <code>--- sub-subpasso</code>.
     No fim do passo: <code>@baixada</code> / <code>@outraUF</code> / <code>@anexoV</code> (só nessa condição),
-    <code>@conf</code> (conferência, em amarelo), <code>@libera</code> (marcar este passo libera a espera).
+    <code>@conf</code> (conferência, em amarelo), <code>@libera</code> (marcar este passo libera a espera), <code>@opcional</code> (ganha o botão “não se aplica”). Uma linha <code>&gt; texto</code> logo abaixo de um passo vira uma dica em amarelo.
     Em um passo, <code>{{texto}}</code> vira um botão de copiar e <code>$cnpj</code>, <code>$os</code> etc. puxam os seus dados.
   </div>
   <textarea id="fonte" spellcheck="false"></textarea>
@@ -220,46 +232,62 @@ dialog menu{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:10px 0 0}
    ROTEIRO PADRÃO (formato de texto — também é o do editor)
    ============================================================ */
 const FONTE_PADRAO = `
-# 0 | Verificar o cadastro do contribuinte (CNPJ) | campos=nome,cnpj,dataInicioAtividade@baixada,dataEncerramento@baixada
+# 0 | Verificar o cadastro do contribuinte (CNPJ) | sistema=Cartão CNPJ | campos=nome,cnpj,dataInicioAtividade@baixada,dataEncerramento@baixada
 ! Antes de tudo: empresa BAIXADA muda o AINF (etapa 13) e matriz em OUTRA UF exige 10 dias de espera depois de abrir a ação fiscal. Responda as duas perguntas no topo da página.
+i Para trabalhar você precisa de: pacote Office instalado (validação automática), certificado digital, o plugin de e-mail (Mailsuite) e acesso ao GSN, ao GFT, ao GRP, ao NFe-cidades, ao Portal Apura e ao Simples Nacional (Entes Federados).
 - Consultar a situação cadastral do CNPJ (cartão CNPJ)
 - Responder no topo: a empresa está baixada? (Sim / Não)
 - Responder no topo: a matriz (CNPJ) é de outra UF? (Simples Nacional/MEI: tratar como matriz)
 - Se baixada: anotar a data de início e a de encerramento da atividade (cartão CNPJ) @baixada
 
-# 1 | Analisar o prazo decadencial | campos=periodos
+# 1 | Analisar o prazo decadencial | sistema=GSN + Portal Apura | campos=periodoInicio,periodoFim,dataDecadencia
 i Obs.: Essa etapa deve prevalecer sobre as seguintes e influenciará na abertura ou não da ação fiscal.
 ! O arquivo do Dossiê Fiscal deve estar na extensão do tipo .xls, .csv ou .xlsx
 - Gerar a planilha do Dossiê Fiscal no GSN:
 -- Movimentação > Contribuinte > Ano-calendário (trocar para o correspondente à ação fiscal) > Imprimir (formato Planilha Eletrônica XLS) > Dossiê Fiscal
+> CNPJ Básico: {{$cnpjBasico}} · Ano-calendário: {{$anos}}
+> Clicar na LUPA primeiro, senão o ícone de imprimir não aparece.
+> Prestar atenção no ano: tem que ser o do ano fiscalizado.
 - Importar o Dossiê Fiscal no Portal do Auditor:
 -- Dentro do contribuinte/processo específico: Apuração > Abrir apuração na calculadora > Importar Dossiê Fiscal > Analisar e preencher informações, se necessário (exemplo: marcar “Dolo/fraude/simulação no caso”) > Estou ciente - prosseguir
+> Anote no campo acima a decadência mais próxima que o Portal mostrar: a página avisa quando ela estiver perto.
 
-# 2 | Analisar a materialidade | campos=periodos
+# 2 | Analisar a materialidade | sistema=GSN + NFe-cidades (ou Portal Apura) | campos=periodoInicio,periodoFim
 i Obs.: Essa etapa deve prevalecer sobre as seguintes e influenciará na abertura ou não da ação fiscal.
 - Verificar a notificação prévia realizada no DTE-SN, através do GSN.
+> GSN > Movimentação > Contribuinte > DTE-SN > aba “Notificação”.
 - Verificar NFSe emitidas em todos os PAs fiscalizados, através do NFe-cidades.
+> NFe-cidades > Consulta completa do contribuinte > CPF/CNPJ > Pesquisar > aba “Notas/Escriturações” > Data: {{$periodoIniDia}} até {{$periodoFimDia}} > Papel: Prestador > Situação: Ativa > Pesquisar Notas.
+> Também dá pelo Portal Apura: cofre (suas credenciais) > NFS-e.
+- Baixar o relatório de notas: Impressão > “Todas as abas PDF” > Relatórios > baixar e salvar na pasta do contribuinte (vai anexado ao AINF na etapa 13)
 - Verificar divergências apontadas, e as porventura não identificadas pelo GSN (como por exemplo, não emissão de NFSe ou segregação incorreta de receitas).
 
-# 3 | Cadastrar o sujeito da ação fiscal e abrir a OS, através do login e senha Gerente/Diretor. | campos=inscMunicipal!,os,dataCienciaOS
+# 3 | Cadastrar o sujeito da ação fiscal e abrir a OS, através do login e senha Gerente/Diretor. | sistema=GFT · usuário do Divino (Gerente/Diretor) | campos=inscMunicipal!,os,dataCienciaOS,periodoInicio,periodoFim
 ! Não esquecer de preencher a inscrição municipal.
 ! IMPORTANTE: depois de abrir a OS, clicar em “Confirmar entrega”. Só assim o perfil de auditor consegue informar o nº do processo no GFT (etapa 5).
+- Entrar no GFT com o usuário do Divino (Gerente/Diretor)
 - Cadastro Municipal > Contribuinte > + Novo
+-- Tipo: Jurídica > Documento: {{$cnpj}} > lupa > conferir as informações do CNPJ > Confirmar
+-- Preencher o que for necessário: nome fantasia e inscrição municipal (NFe-cidades/GSN), sócios (GSN, aba “Sócio”), e-mail e telefone > ✓ (salvar)
 - Fiscalização > Ordem de fiscalização > +Novo
--- Classificação
--- Categoria
--- Nº do processo
--- Procedimento
+-- Classificação → {{Fiscalização tributária}}
+-- Categoria → {{Ação direta do fisco}}
+-- Nº do processo: deixar em branco (entra na etapa 5)
+-- Procedimento → {{Auditoria Fiscal}} > Período inicial {{$periodoIniDia}} e final {{$periodoFimDia}} > +
 -- Contribuinte > + (adicionar)
 -- Auditor > + (adicionar)
+-- Gerar documento? Sim > Ordem de fiscalização > Gerar > salvar o PDF como {{OS1}}
 - Clicar em “Confirmar entrega” da OS: sem isso o perfil de auditor não consegue colocar o nº do processo (etapa 5) @conf
+> Ordem de fiscalização > Pesquisar > ícone de entrega na linha da OS > Data: a de hoje > Confirmar. Anote essa data acima (data ciente).
 
-# 4 | Incluir e-mail(s) e representante(s) do sujeito da ação fiscal no Cadastro Técnico Municipal (CTM), através do GRPweb. | campos=email,socios
+# 4 | Incluir e-mail(s) e representante(s) do sujeito da ação fiscal no Cadastro Técnico Municipal (CTM), através do GRPweb. | sistema=GRP (CTM) | campos=email,socios
 i Obs.: A cada movimentação do processo digital o sujeito da ação fiscal receberá uma notificação.
 - Contribuinte > Contato
+> GRPweb > ícone CTM > Contribuintes > abrir o cadastro > aba “Contatos”: incluir o e-mail {{$email}}.
 - Contribuinte > Representante (incluir sócio; se houver mais de um, incluir todos).
+> Aba “Representantes” > + > Início: a data de hoje ({{$hoje}}).
 
-# 5 | Gerar processo eletrônico no GRPweb | campos=processoGRP,os
+# 5 | Gerar processo eletrônico no GRPweb | sistema=GRP + GFT · seu usuário de auditor | campos=processoGRP,os
 ! Só dá para informar o nº do processo no GFT depois de confirmar a entrega da OS (etapa 3). Sem isso, o perfil de auditor não consegue.
 - Sistemas > Protocolos, Documentos e Fluxos (PDF) > Menu (☰) > Protocolos > Cadastros (Processos) > Novo:
 -- Tipo de Pessoa → Física ou Jurídica
@@ -274,33 +302,45 @@ i Obs.: A cada movimentação do processo digital o sujeito da ação fiscal rec
 -- Descrição → {{Procedimento de fiscalização OS nº $os}}
 -- Arquivos anexos → Anexar arquivo da OS (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
 -- Salvar (e anotar o nº do processo no campo acima)
+> O número aparece no topo do protocolo depois de salvar (ex.: 7982/2026).
+- Sair do usuário do Divino e entrar no GFT com o SEU usuário de auditor @conf
 - Informar nº do processo no GFT:
 -- Fiscalização > Ordem de fiscalização > Pesquisar > Operações adicionais > Processo
+> Abrir a linha da OS (seta) > ícone “Processo” > Nº do processo: {{$processoGRP}} > Salvar.
 
-# 6 | Abrir TIAF no GFT (Publicenter), em seguida, notificar o sujeito da ação fiscal (via e-mail). | campos=numTIAF,dataTIAF,dataCienciaTIAF
+# 6 | Abrir TIAF no GFT (Publicenter), em seguida, notificar o sujeito da ação fiscal (via e-mail). | sistema=GFT · seu usuário + e-mail + GRP | campos=numTIAF,dataTIAF,dataCienciaTIAF
 e tiaf
 - Fiscalização > Termo de início > + Novo
+> Escolher a ordem de fiscalização > ✓ > Documento: {{TIAF - Sem Documentos}} > Prazo (dias): 0 > salvar o PDF como {{TIAF}}.
 - Após a emissão: Fiscalização > Termo de início > Pesquisar > Operações adicionais > Confirmar entrega
+> Data: a de hoje > Confirmar.
 - Enviar o TIAF por e-mail ao sujeito da ação fiscal
+> Enviar pelo e-mail da fiscalização tributária, com OS1.pdf e TIAF.pdf anexados. Deixe o Mailsuite ligado: a data em que o contribuinte abrir o e-mail é a data de ciência (campo acima).
 - Anexar o TIAF ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
+- Imprimir em PDF o e-mail enviado (comprovante de envio)
 - Anexar o comprovante de envio do e-mail ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
 
-# 7 | Registrar a Ação Fiscal no Portal do Simples Nacional (Entes Federados) | campos=dataCienciaOS,dataTIAF,numTIAF,dataRegistroSN
+# 7 | Registrar a Ação Fiscal no Portal do Simples Nacional (Entes Federados) | sistema=Simples Nacional (Entes Federados) · certificado digital | campos=dataCienciaOS,dataFimFiscalizacao,dataTIAF,numTIAF,periodoInicio,periodoFim,dataRegistroSN
 - SEFISC > Registro da Ação Fiscal:
 -- Perfil → FISCAL DO ENTE
 - Ação Fiscal > Inclusão de Ação Fiscal
 - Seleção dos Estabelecimentos (selecionar sujeito da ação fiscal).
-- Se o sistema do Simples avisar que a matriz é de outra UF: marcar “Matriz em outra UF?” = Sim no topo da página
+- Se o sistema do Simples avisar que a matriz é de outra UF: marcar “Matriz em outra UF?” = Sim no topo da página @opcional
 - Escolha dos Fatos Geradores (selecionar “ISS”)
 - Dados dos Fiscais (incluir os responsáveis, mín. 2 AFRM)
+> Pelo CPF de cada auditor (ficam em “Dados fixos”, na lateral).
 -- Selecionar a unidade {{00111 - DIVISÃO FISCALIZAÇÃO TRIBUTOS PRÓPRIOS}}
 - Dados da Ação Fiscal:
 -- Data de início da contagem do prazo para término da fiscalização → Data da entrega da OS (data ciente), constante do GFT: {{$dataCienciaOS}}
+-- Prazo original de duração da fiscalização (em dias) → {{90}} > clicar em “Calcular Data Final”
+> Anote no campo acima a data final que o sistema calcular: a página conta esse prazo para você.
+-- Períodos do SIMPLES: Período {{$periodoIniMes}} a {{$periodoFimMes}} > Incluir
 -- Motivação Principal → {{Seleção Interna (0001)}}
 -- Nome do Documento Interno → {{Ordem de Serviço (OS)}}
 -- Número do Documento Interno → Nº da OS emitida: {{$os}}
 - Dados do Contato:
 -- Preencher apenas CPF: {{@cpfSocios}}
+> MEI: o CPF do titular costuma estar no fim da razão social. Depois de digitar, clique em “Buscar Nome”.
 -- Data de Ciência do Início da Ação Fiscal → Data da emissão do TIAF (provisoriamente): {{$dataTIAF}}
 -- Hora da Ciência do Início da Ação Fiscal → Qualquer hora.
 -- Nome do Documento que deu início a Ação Fiscal → {{Termo de Início de Ação Fiscal (TIAF)}}
@@ -308,25 +348,32 @@ e tiaf
 - Confirmação → Confirmar cadastro
 - Anotar abaixo a data do registro (abertura) da ação fiscal no Simples Nacional
 
-# 7A | Aguardar 10 dias: outras UFs decidem se entram na ação fiscal | cond=outraUF | espera=dataRegistroSN:10 | campos=dataRegistroSN
+# 7A | Aguardar 10 dias: outras UFs decidem se entram na ação fiscal | cond=outraUF | espera=dataRegistroSN:10 | sistema=Simples Nacional | campos=dataRegistroSN
 i Enquanto o prazo não terminar, as etapas seguintes ficam TRAVADAS (dá para liberar manualmente, com confirmação).
 - Informar a data do registro (abertura) da ação fiscal no Simples Nacional
 - Aguardar o fim do prazo de 10 dias (as outras UFs se pronunciam sobre entrar ou não na ação fiscal)
 
-# 8 | Baixar arquivo XML do PGDAS-D do sujeito da ação fiscal. | campos=cnpj
+# 8 | Baixar arquivo XML do PGDAS-D do sujeito da ação fiscal. | sistema=Simples Nacional (AINF 4.0) | campos=cnpj,numAcaoFiscal
 - SEFISC > AINF 4.0 > Baixar PGDAS-D (por CNPJ).
+> Por CNPJ > Buscar > selecionar a ação fiscal > Aceitar. Anote o nº da ação fiscal que aparece na lista.
 - Criar uma pasta específica para cada sujeito de ação fiscal contendo os seguintes arquivos: XML do PGDAS-D e Calculadora_AINF4.
 ! A pasta específica criada não pode ser "pasta compartilhada" (OneDrive, Dropbox, Google Drive, etc).
 
-# 9 | Realizar a apuração na calculadora
+# 9 | Realizar a apuração na calculadora | sistema=Portal Apura
+i Caso 1: o contribuinte não declarou nada na PGDAS, mas emitiu notas → lançar o valor das notas em cada linha zerada, classificar como DBC, multa 100%.
+i Caso 2: declarou um valor menor que o das notas → deixar o valor declarado como RDM e criar outra linha com a diferença (notas − PGDAS) como DBC, multa 100%.
+i Caso 3: declarou tudo como venda de mercadoria (ou parecido), mas há notas → deixar a receita da PGDAS como RDM e lançar o valor das notas como DBC, sem fazer a diferença.
+- Preencher o “Resumo do procedimento de fiscalização” no Portal Apura: Nº do processo (GRP) {{$processoGRP}} e Ordem de Serviço (GFT) {{$os}}
 - Verificar anexo de enquadramento do CNAE e item da lista de serviços (ISS).
 - Verificar se existem retenções nas NFe emitidas.
 - Enquadrar DBCs e/ou SIRs no código de atividade específico para o SN.
 - Dentro do contribuinte/processo específico: Apuração > Abrir Calculadora AINF > Criar apuração para Processo nº ... > Importar PGDAS-D
+> Selecionar o XML da PGDAS-D baixado na etapa 8.
 - Incluir DBCs e/ou SIRs na calculadora do Portal Apura.
+- Salvar e Calcular
 - A apuração constatou Anexo V (fator R)? Responder no topo da página (Sim / Não)
 
-# 9A | Termo de intimação (10 dias): folha de pagamento — Anexo V / fator R | cond=anexoV | espera=dataCienciaIntimacao:10 | campos=dataCienciaIntimacao
+# 9A | Termo de intimação (10 dias): folha de pagamento — Anexo V / fator R | cond=anexoV | espera=dataCienciaIntimacao:10 | sistema=GFT · seu usuário + e-mail + GRP | campos=dataCienciaIntimacao
 e intimacao
 i Apuração em PAUSA. Só depois de receber a folha de pagamento (ou do prazo vencer) a apuração é concluída e o XML do AINF é exportado.
 - Emitir o Termo de Intimação no GFT (10 dias para o contribuinte apresentar a folha de pagamento)
@@ -337,34 +384,42 @@ i Apuração em PAUSA. Só depois de receber a folha de pagamento (ou do prazo v
 - Informar a data da leitura do e-mail pelo contribuinte (plugin): os 10 dias corridos contam dessa data
 - Folha de pagamento recebida @libera
 
-# 9B | Terminar a apuração com a folha de pagamento | cond=anexoV
+# 9B | Terminar a apuração com a folha de pagamento | cond=anexoV | sistema=Portal Apura
 - Analisar a folha de pagamento apresentada (fator R)
 - Terminar a apuração na calculadora
 
-# 10 | Fazer a validação automática do AINF gerado pelo Portal do Auditor. | depende=9
+# 10 | Fazer a validação automática do AINF gerado pelo Portal do Auditor. | sistema=Portal Apura + AINF_Watcher | depende=9
 i Obs.: Esta etapa será provisoriamente necessária para validação dos XMLs dos AINF gerados via Portal do Auditor.
-- Dentro do contribuinte/processo específico: Apuração > Abrir Calculadora AINF > Validação Automática.
+! A validação automática só funciona com o pacote Office instalado e funcionando.
+- Abrir o AINF_Watcher e conferir “Watcher conectado”
+> Se ainda não tiver, baixe o AINF_Watcher primeiro. O ícone dele fica na bandeja do Windows, perto do relógio.
+- Na apuração do Portal Apura: menu “···” > Validação automática
 - Confirmar que a validação automática não apontou divergências
+> Em “Conferências” devem aparecer “Validação automática: OK” e “Estrutura do AINF XML: OK”.
 
-# 11 | Exportar o XML do AINF dentro do Portal do Auditor | depende=10
+# 11 | Exportar o XML do AINF dentro do Portal do Auditor | sistema=Portal Apura | depende=10
 i Obs.: O arquivo gerado após o procedimento terá o nome identificado por “web” ao final.
 - Após apuração e validação: Calcular&Gerar AINF > AINF XML
+> Aba “Resultado” > “Baixar AINF XML”. Salve na pasta do contribuinte.
 
-# 12 | Gerar o TCAF (Relatório Fiscal) no GFT
+# 12 | Gerar o TCAF (Relatório Fiscal) no GFT | sistema=GFT · seu usuário
 i Obs.: Essa etapa é necessária à realização da seguinte, uma vez que o TCAF será anexado ao AINF gerado no Portal do Simples Nacional (Entes Federados).
 - Fiscalização > Termo de conclusão > + Novo
+> Salve o PDF do TCAF na pasta do contribuinte: ele é anexado ao AINF (etapa 13).
 
-# 13 | Gerar o AINF "oficial" no Portal do Simples Nacional (Entes Federados) | depende=10,11,12 | exigeBaixada | campos=numAINF,dataCienciaTIAF
+# 13 | Gerar o AINF "oficial" no Portal do Simples Nacional (Entes Federados) | sistema=Simples Nacional (AINF 4.0) | depende=10,11,12 | exigeBaixada | campos=numAINF,dataCienciaTIAF
 - CONFERÊNCIA: a empresa está baixada? Confirmar a resposta no topo da página (Sim / Não) @conf
 - CONFERÊNCIA: houve PAs não fiscalizados? Se sim, será preciso justificar o motivo @conf
 - CONFERÊNCIA: validação automática concluída sem divergências (etapa 10) @conf
 - Atualizar a data de ciência ao TIAF nos dados do registro da ação fiscal no SN (etapa 7): {{$dataCienciaTIAF}}
 - SEFISC > AINF 4.0 > Lavrar auto > Botão de ação “Enviar Dados Apurados” > Importar XML do AINF gerado pelo Portal do Auditor (uma vez não identificadas divergências na etapa de “Validação Automática”) > Enviar Dados Apurados > Voltar > Botão de ação “Gerar AINF”
+> Lavrar AINF > Por CNPJ: {{$cnpjBasico}} > Buscar.
 -- Exigibilidade suspensa → Não
--- Justificar motivo → Somente se houver PAs não fiscalizados.
+-- Justificar motivo → Somente se houver PAs não fiscalizados. @opcional
 -- Anexar documentos → TCAF (marcar checkbox “Relatório Fiscal” antes de anexar), NFS-e (relatório do tipo “Todas as abas PDF” pelo NFe-cidades) e outros que forem pertinentes.
+> O relatório de NFS-e é o que você baixou na etapa 2.
 -- Informações do sujeito passivo → Confirmar
--- Complementar AINF Parte 1 → Informar nº do Processo Administrativo, prazo de impugnação “em dias”, selecionar autoridades autuantes.
+-- Complementar AINF Parte 1 → Informar nº do Processo Administrativo ({{$processoGRP}}), prazo de impugnação “em dias”, selecionar autoridades autuantes.
 -- Complementar AINF Parte 2 → Intimar outros responsáveis se a empresa estiver baixada ou em outros casos pertinentes.
 --- EMPRESA BAIXADA: @baixada
 ---- Responsabilidade Tributária → {{Resp. Solidária por Empresa Extinta}} @baixada
@@ -375,20 +430,20 @@ i Obs.: Essa etapa é necessária à realização da seguinte, uma vez que o TCA
 -- Confirmar Dados Emissão → Marcar “Todas as orientações acima foram observadas!” > Gerar rascunho (a fim de conferir os valores PDF Portal Auditor com Rascunho AINF Portal do Simples Nacional) > Gerar AINF (se estiver tudo correto)
 - Download “AINF Completo”
 
-# 14 | Enviar “AINF completo”, TCAF, Termo de Ciência de Lançamento (TC-CONT) e documentos complementares por e-mail, em seguida, anexá-los aos PTA no GRPweb. | campos=processoGRP!
+# 14 | Enviar “AINF completo”, TCAF, Termo de Ciência de Lançamento (TC-CONT) e documentos complementares por e-mail, em seguida, anexá-los aos PTA no GRPweb. | sistema=E-mail + GRP | encerra=fiscalizacao | campos=processoGRP!
 e ainf
 - Enviar por e-mail: AINF completo, TCAF, TC-CONT e documentos complementares
 - Anexar o AINF completo, o TCAF, o TC-CONT e os documentos complementares ao PTA no GRPweb
 - Anexar o comprovante de envio do e-mail ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
 - Salvar o nº do processo no GRP (obrigatório para concluir)
 
-# 15 | Registrar ciência do lançamento (AINF) no Portal do Simples Nacional | campos=processoSN,dataCienciaLancamento
+# 15 | Registrar ciência do lançamento (AINF) no Portal do Simples Nacional | sistema=Simples Nacional (Contencioso) | encerra=decadencia | campos=processoSN,dataCienciaLancamento
 i Obs.: Somente após essa etapa o sujeito passivo poderá emitir o DAS com desconto da multa.
 - SEFISC > Contencioso > Informar número do processo que está no Termo de Ciência de Lançamento (TC-CONT) ou CNPJ > OK.
 - Selecionar o processo
 - Eventos > Ciência de Lançamento > Informar a Forma de Ciência e Data de Ciência (Data de Vencimento da Multa será gerada automaticamente) > Gravar Ciência.
 
-# 16 | Encaminhar à inscrição de Dívida Ativa (Portal do SN) | campos=numAINF,processoSN
+# 16 | Encaminhar à inscrição de Dívida Ativa (Portal do SN) | sistema=Simples Nacional (Dívida Ativa) + GRP | campos=numAINF,processoSN
 i Obs.: Essa etapa será implementada apenas se não houver pagamento/parcelamento ou a apresentação de impugnação administrativa (verificar na guia "Dívida Ativa" a situação do CT constituído). Se não se aplicar, use o botão “Não se aplica”.
 - SEFISC > Dívida Ativa > Gerar documentos > Nº AINF > Baixar "Extrato de Débitos" e "Termo de Encaminhamento (TEPDA)"
 - Renomear os documentos baixados da seguinte forma: NomedoDocumento_NºAINF_Nºprocessosimplesnacional → {{NomedoDocumento_$numAINF_$processoSN}}
@@ -396,7 +451,7 @@ i Obs.: Essa etapa será implementada apenas se não houver pagamento/parcelamen
 - Anexar documentos no Portal do SN: primeiro, o Extrato de Débitos e, logo em seguida, o TEPDA (marcando o checkbox correspondente).
 - Anexar os documentos em questão também ao processo online, via GRPweb.
 
-# 17 | Arquivar o processo no GRPweb.
+# 17 | Arquivar o processo no GRPweb. | sistema=GRP
 i Obs.: O processo constará do menu "Arquivados" no servidor fiscal em questão, para futuro desarquivamento, caso necessário. Ao marcar a última etapa exigida, a fiscalização é concluída.
 - Clicar no botão "Arquivar" dentro do processo específico.
 - Encerrar o documento antes do arquivamento? → Sim
@@ -413,14 +468,18 @@ const CAMPOS = {
   inscMunicipal:{r:'Inscrição municipal'},
   email:{r:'E-mail do contribuinte'},
   socios:{r:'Sócios / representantes',t:'lista'},
-  periodos:{r:'Ano-calendário / PAs fiscalizados'},
+  periodoInicio:{r:'Período fiscalizado: de (mm/aaaa)',t:'mes'},
+  periodoFim:{r:'Período fiscalizado: até (mm/aaaa)',t:'mes'},
+  dataDecadencia:{r:'Decadência mais próxima (Portal Apura)',t:'data'},
   os:{r:'Nº da OS'},
   dataCienciaOS:{r:'Data da entrega da OS (data ciente, no GFT)',t:'data'},
+  dataFimFiscalizacao:{r:'Fim do prazo da fiscalização',t:'data'},
   processoGRP:{r:'Nº do processo no GRP'},
   numTIAF:{r:'Nº do TIAF'},
   dataTIAF:{r:'Data de emissão do TIAF',t:'data'},
   dataCienciaTIAF:{r:'Data de ciência do TIAF (leitura do e-mail)',t:'data'},
   dataRegistroSN:{r:'Data do registro (abertura) da ação fiscal no Simples Nacional',t:'data'},
+  numAcaoFiscal:{r:'Nº da ação fiscal (Simples Nacional)'},
   dataInicioAtividade:{r:'Início da atividade (cartão CNPJ)',t:'data',c:'baixada'},
   dataEncerramento:{r:'Encerramento da atividade (cartão CNPJ)',t:'data',c:'baixada'},
   dataCienciaIntimacao:{r:'Leitura do e-mail da intimação (plugin)',t:'data',c:'anexoV'},
@@ -434,7 +493,7 @@ const ROT_COND = {
   anexoV:{r:'Anexo V (fator R)?',tag:'ANEXO V'}
 };
 const CHAVE = 'assistenteFiscal.v1';
-const ROTEIRO_VERSAO = 2; // sobe a cada mudança no roteiro padrão; processos com roteiro não editado são atualizados sozinhos
+const ROTEIRO_VERSAO = 3; // sobe a cada mudança no roteiro padrão; processos com roteiro não editado são atualizados sozinhos
 
 /* ============================================================
    Utilitários
@@ -464,7 +523,7 @@ function parseFonte(txt){
       const num=partes[0], titulo=partes[1]||'';
       if(!num||!titulo){erros.push(`Linha ${n+1}: use "# número | título".`);return;}
       if(etapas.some(x=>x.num===num)){erros.push(`Linha ${n+1}: o número de etapa "${num}" está repetido.`);return;}
-      et={id:num,num,titulo,cond:null,espera:null,campos:[],depende:[],exigeBaixada:false,obs:[],emails:[],passos:[]};
+      et={id:num,num,titulo,cond:null,espera:null,campos:[],depende:[],exigeBaixada:false,sistema:'',encerra:[],obs:[],emails:[],passos:[]};
       partes.slice(2).forEach(op=>{
         const i=op.indexOf('='); const k=i<0?op:op.slice(0,i).trim(), v=i<0?'':op.slice(i+1).trim();
         if(k==='cond'){ if(ROT_COND[v]) et.cond=v; else erros.push(`Linha ${n+1}: condição "${v}" desconhecida.`); }
@@ -472,6 +531,8 @@ function parseFonte(txt){
         else if(k==='campos'){ et.campos=v.split(',').map(s=>s.trim()).filter(Boolean).map(s=>{ const req=s.includes('!'); const [chave,c]=s.replace('!','').split('@'); return {chave,req,c:c||null}; }); }
         else if(k==='depende'){ et.depende=v.split(',').map(s=>s.trim()).filter(Boolean); }
         else if(k==='exigeBaixada'){ et.exigeBaixada=true; }
+        else if(k==='sistema'){ et.sistema=v; }
+        else if(k==='encerra'){ et.encerra=v.split(',').map(s=>s.trim()).filter(Boolean); }
       });
       etapas.push(et); return;
     }
@@ -479,11 +540,12 @@ function parseFonte(txt){
     if(l.startsWith('! ')) et.obs.push({tipo:'alerta',texto:l.slice(2)});
     else if(l.startsWith('i ')) et.obs.push({tipo:'info',texto:l.slice(2)});
     else if(l.startsWith('e ')) et.emails.push(l.slice(2).trim());
+    else if(l.startsWith('> ')){ const u=et.passos[et.passos.length-1]; if(u) u.dicas.push(l.slice(2)); else et.obs.push({tipo:'info',texto:l.slice(2)}); }
     else if(l[0]==='-'){
       const m=l.match(/^(-+)\s*(.*)$/); let texto=m[2]; const nivel=Math.min(m[1].length-1,4);
-      let cond=null,conf=false,libera=false;
-      texto=texto.replace(/\s@(\w+)/g,(_,t)=>{ if(t==='conf')conf=true; else if(t==='libera')libera=true; else if(ROT_COND[t])cond=t; return ''; }).trim();
-      et.passos.push({id:null,nivel,texto,cond,condPropria:cond,conf,libera,filhos:false});
+      let cond=null,conf=false,libera=false,opcional=false;
+      texto=texto.replace(/\s@(\w+)/g,(_,t)=>{ if(t==='conf')conf=true; else if(t==='libera')libera=true; else if(t==='opcional')opcional=true; else if(ROT_COND[t])cond=t; return ''; }).trim();
+      et.passos.push({id:null,nivel,texto,cond,condPropria:cond,conf,libera,opcional,dicas:[],filhos:false});
     } else erros.push(`Linha ${n+1}: não entendi "${l.slice(0,40)}…" (passos começam com "-").`);
   });
   etapas.forEach(e=>{
@@ -505,10 +567,12 @@ function toFonte(etapas){
     if(e.campos.length) op.push('campos='+e.campos.map(c=>c.chave+(c.req?'!':'')+(c.c?'@'+c.c:'')).join(','));
     if(e.depende.length) op.push('depende='+e.depende.join(','));
     if(e.exigeBaixada) op.push('exigeBaixada');
+    if(e.sistema) op.push('sistema='+e.sistema);
+    if((e.encerra||[]).length) op.push('encerra='+e.encerra.join(','));
     const L=['# '+[e.num,e.titulo,...op].join(' | ')];
     e.obs.forEach(o=>L.push((o.tipo==='alerta'?'! ':'i ')+o.texto));
     (e.emails||[]).forEach(k=>L.push('e '+k));
-    e.passos.forEach(p=>L.push('-'.repeat(p.nivel+1)+' '+p.texto+(p.condPropria?' @'+p.condPropria:'')+(p.conf?' @conf':'')+(p.libera?' @libera':'')));
+    e.passos.forEach(p=>{ L.push('-'.repeat(p.nivel+1)+' '+p.texto+(p.condPropria?' @'+p.condPropria:'')+(p.conf?' @conf':'')+(p.libera?' @libera':'')+(p.opcional?' @opcional':'')); (p.dicas||[]).forEach(d=>L.push('> '+d)); });
     return L.join('\n');
   }).join('\n\n')+'\n';
 }
@@ -536,20 +600,32 @@ let S, drafts={}, rascunhoData={}, erroNavegador=false, arqH=null, arqEstado='ne
 const cur = () => S.processos.find(p=>p.id===S.atualId);
 function globaisPadrao(){ return [
   {id:uid()+'a',rotulo:'Meu nome',valor:''},
+  {id:uid()+'g',rotulo:'Meu CPF',valor:''},
   {id:uid()+'b',rotulo:'Meu e-mail',valor:''},
   {id:uid()+'c',rotulo:'Segundo(a) auditor(a)',valor:''},
+  {id:uid()+'h',rotulo:'CPF do(a) segundo(a) auditor(a)',valor:''},
+  {id:uid()+'i',rotulo:'E-mail de envio (fiscalização tributária)',valor:''},
   {id:uid()+'d',rotulo:'Unidade (Simples Nacional)',valor:'00111 - DIVISÃO FISCALIZAÇÃO TRIBUTOS PRÓPRIOS'},
   {id:uid()+'e',rotulo:'Local de cadastro (GRP)',valor:'Departamento de Protocolos Tributários Digitais'},
   {id:uid()+'f',rotulo:'Local de arquivamento (GRP)',valor:'DEPARTAMENTO DE TRIBUTAÇÃO'}
 ]; }
-function emailsPadrao(){ return {
-  tiaf:{titulo:'E-mail do TIAF (notificação do início da ação fiscal)',assunto:'',corpo:
-`Fica o sujeito passivo acima identificado notificado do início da ação fiscal.
+const TIAF_ANTIGO = `Fica o sujeito passivo acima identificado notificado do início da ação fiscal.
 Ressaltamos que, conforme a Lei Complementar nº 203/2022, as comunicações oficiais do Processo Tributário Administrativo (PTA) ocorrerão prioritariamente por e-mail, utilizando-se os dados constantes no CNPJ ou no sistema de NFS-e municipal.
 
+Para o acompanhamento do processo, o sujeito passivo deverá efetuar cadastro no Portal do Cidadão.`;
+function emailsPadrao(){ return {
+  tiaf:{titulo:'E-mail do TIAF (notificação do início da ação fiscal)',assunto:'Procedimento de fiscalização OS nº $os (PAT nº $processoGRP)',corpo:
+`Prezado(a) contribuinte,
+
+Seguem anexos a Ordem de Serviço nº $os e o Termo de Início de Ação Fiscal (TIAF) nº $numTIAF.
+
+Fica o sujeito passivo $nome, CNPJ $cnpj, notificado do início da ação fiscal, objeto do Processo Tributário Administrativo (PTA) nº $processoGRP.
+
+Ressaltamos que, conforme a Lei Complementar nº 203/2022, as comunicações oficiais do PTA ocorrerão prioritariamente por e-mail, utilizando-se os dados constantes no CNPJ ou no sistema de NFS-e municipal.
+
 Para o acompanhamento do processo, o sujeito passivo deverá efetuar cadastro no Portal do Cidadão.`},
-  intimacao:{titulo:'E-mail do Termo de Intimação (folha de pagamento — Anexo V)',assunto:'',corpo:''},
-  ainf:{titulo:'E-mail do AINF completo, TCAF e TC-CONT',assunto:'',corpo:''}
+  intimacao:{titulo:'E-mail do Termo de Intimação (folha de pagamento — Anexo V)',assunto:'Termo de Intimação — OS nº $os (PAT nº $processoGRP)',corpo:''},
+  ainf:{titulo:'E-mail do AINF completo, TCAF e TC-CONT',assunto:'Auto de Infração — OS nº $os (PAT nº $processoGRP)',corpo:''}
 }; }
 function normalizar(p){
   const novoRot=!p.roteiro;
@@ -557,7 +633,12 @@ function normalizar(p){
   p.feito=p.feito||{}; p.na=p.na||{}; p.liberacoes=p.liberacoes||{}; p.notas=p.notas||{}; p.notaGeral=p.notaGeral||'';
   p.historico=p.historico||[]; p.abertas=p.abertas||{}; p.roteiro=p.roteiro||clone(ROTEIRO_PADRAO);
   p.id=p.id||uid(); p.criadoEm=p.criadoEm||agora(); p.atualizadoEm=p.atualizadoEm||agora();
-  p.socios=p.socios||[];
+  p.socios=p.socios||[]; p.naPasso=p.naPasso||{};
+  if(p.dados.periodos&&!p.dados.periodoInicio&&!p.dados.periodoFim){ // versão antiga: período em texto livre
+    const t=p.dados.periodos, m=t.match(/(\d{2})\/(\d{4})\D+(\d{2})\/(\d{4})/), a=t.match(/(\d{4})(?:\D+(\d{4}))?/);
+    if(m){ p.dados.periodoInicio=m[2]+'-'+m[1]; p.dados.periodoFim=m[4]+'-'+m[3]; }
+    else if(a){ p.dados.periodoInicio=a[1]+'-01'; p.dados.periodoFim=(a[2]||a[1])+'-12'; }
+  }
   if(!p.socios.length&&(p.dados.socio||p.dados.cpfContato)){ // versão antiga: um sócio só
     p.socios.push({id:uid(),nome:p.dados.socio||'',cpf:p.dados.cpfContato||''}); delete p.dados.socio; delete p.dados.cpfContato;
   }
@@ -575,6 +656,12 @@ function carregar(){
   try{ const t=localStorage.getItem(CHAVE); if(t) S=JSON.parse(t); }catch(e){ erroNavegador=true; }
   if(!S||!Array.isArray(S.processos)) S={v:1,atualId:null,processos:[],globais:globaisPadrao(),modelo:null};
   S.emails=S.emails||{}; const ep=emailsPadrao(); Object.keys(ep).forEach(k=>{ if(!S.emails[k]) S.emails[k]=ep[k]; });
+  if((S.emailsVersao||1)<2){ // modelo do TIAF melhorado; só troca se você não tinha mexido nele
+    if(S.emails.tiaf&&(S.emails.tiaf.corpo||'').trim()===TIAF_ANTIGO.trim()&&!S.emails.tiaf.assunto) S.emails.tiaf=ep.tiaf;
+    ['intimacao','ainf'].forEach(k=>{ if(S.emails[k]&&!S.emails[k].assunto) S.emails[k].assunto=ep[k].assunto; });
+    S.emailsVersao=2;
+  }
+  if((S.globaisVersao||1)<2){ globaisPadrao().forEach(g=>{ if(!S.globais.some(x=>x.rotulo===g.rotulo)) S.globais.push(g); }); S.globaisVersao=2; }
   S.processos.forEach(normalizar);
   if(!S.processos.length) novoProcesso();
   if(!cur()) S.atualId=S.processos[0].id;
@@ -611,7 +698,7 @@ function calc(p){
     infos.push(info);
     if(vis==='oculta') return;
     info.folhas=e.passos.filter(x=>!x.filhos&&passoVis(p,x)==='ativo');
-    info.feitos=info.folhas.filter(x=>p.feito[x.id]).length;
+    info.feitos=info.folhas.filter(x=>p.feito[x.id]||(p.naPasso&&p.naPasso[x.id])).length;
     info.concl=info.na||(vis==='ativa'&&info.folhas.length>0&&info.feitos===info.folhas.length);
     if(bloq&&vis==='ativa') info.lock=bloq;
     if(e.espera&&vis==='ativa'){
@@ -640,15 +727,50 @@ function textoPrazo(i){
   return pz.rest===0?'ÚLTIMO DIA (hoje)':`faltam ${pz.rest} dia${pz.rest>1?'s':''} (até ${fmtData(pz.fim)})`;
 }
 
+const isoHoje=()=>{ const d=hoje(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const fmtMes=v=>{ if(!v) return ''; const [a,m]=v.split('-'); return m+'/'+a; };
+const fmtCpf=d=>d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,'$1.$2.$3-$4');
+function cnpjValido(d){
+  if(!/^\d{14}$/.test(d)||/^(\d)\1+$/.test(d)) return false;
+  const dv=n=>{ let s=0,pos=n-7; for(let i=0;i<n;i++){ s+=+d[i]*pos--; if(pos<2) pos=9; } const r=s%11; return r<2?0:11-r; };
+  return dv(12)===+d[12]&&dv(13)===+d[13];
+}
+function cpfValido(d){
+  if(!/^\d{11}$/.test(d)||/^(\d)\1+$/.test(d)) return false;
+  for(const n of [9,10]){ let s=0; for(let i=0;i<n;i++) s+=+d[i]*(n+1-i); if((s*10)%11%10!==+d[n]) return false; }
+  return true;
+}
+// dados calculados a partir dos que você digitou (usados como $chave nos botões de copiar)
+const DERIVADOS={
+  cnpjBasico:p=>{ const d=(p.dados.cnpj||'').replace(/\D/g,''); return d.length>=8?d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8):''; },
+  periodoIniDia:p=>p.dados.periodoInicio?'01/'+fmtMes(p.dados.periodoInicio):'',
+  periodoFimDia:p=>{ const v=p.dados.periodoFim; if(!v) return ''; const [a,m]=v.split('-').map(Number); return fmtData(new Date(a,m,0)); },
+  periodoIniMes:p=>fmtMes(p.dados.periodoInicio||''),
+  periodoFimMes:p=>fmtMes(p.dados.periodoFim||''),
+  anos:p=>{ const a=(p.dados.periodoInicio||'').slice(0,4), b=(p.dados.periodoFim||'').slice(0,4); return a&&b&&a!==b?a+' a '+b:(a||b); },
+  hoje:()=>fmtData(hoje())
+};
+const ROT_DERIV={cnpjBasico:'CNPJ básico',periodoIniDia:'início do período',periodoFimDia:'fim do período',periodoIniMes:'início do período',periodoFimMes:'fim do período',anos:'ano-calendário',hoje:'hoje'};
+// prazo da fiscalização (90 dias da data ciente da OS, ou a data que você anotar) e decadência
+function prazosGerais(p,c){
+  const L=[], encerrado=t=>c.infos.some(i=>(i.e.encerra||[]).includes(t)&&i.concl);
+  const fimF=p.dados.dataFimFiscalizacao?parseData(p.dados.dataFimFiscalizacao):(p.dados.dataCienciaOS?addDias(p.dados.dataCienciaOS,90):null);
+  if(fimF&&!encerrado('fiscalizacao')){ const r=difDias(hoje(),fimF); L.push({tipo:'fiscalizacao',rot:'Prazo da fiscalização',fim:fimF,rest:r,cor:r<=10?'verm':r<=30?'lara':'verde'}); }
+  if(p.dados.dataDecadencia&&!encerrado('decadencia')){ const fim=parseData(p.dados.dataDecadencia), r=difDias(hoje(),fim); L.push({tipo:'decadencia',rot:'Decadência',fim,rest:r,cor:r<=30?'verm':r<=90?'lara':'verde'}); }
+  return L;
+}
+const txtRest=z=>z.rest<0?`venceu há ${-z.rest} dia${z.rest<-1?'s':''} (${fmtData(z.fim)})`:z.rest===0?`vence HOJE (${fmtData(z.fim)})`:`faltam ${z.rest} dia${z.rest>1?'s':''} (até ${fmtData(z.fim)})`;
+
 /* ============================================================
    Texto com botões de copiar e dados do processo
    ============================================================ */
 function resolver(tpl){
   const p=cur();
   return tpl.replace(/\$([A-Za-z][A-Za-z0-9]*)/g,(m,k)=>{
+    if(DERIVADOS[k]){ const v=DERIVADOS[k](p); return v||'‹'+ROT_DERIV[k]+'›'; }
     const v=((p.dados[k]||'')+'').trim();
     if(!v) return '‹'+(CAMPOS[k]?CAMPOS[k].r:k)+'›';
-    return CAMPOS[k]&&CAMPOS[k].t==='data'?fmtData(v):v;
+    const t=CAMPOS[k]&&CAMPOS[k].t; return t==='data'?fmtData(v):t==='mes'?fmtMes(v):v;
   });
 }
 function fmtTexto(t){
@@ -662,7 +784,7 @@ function fmtTexto(t){
   return out+esc(t.slice(ult));
 }
 function refreshChips(){ document.querySelectorAll('.chip[data-tpl]').forEach(b=>{ b.textContent=resolver(b.dataset.tpl); }); }
-function valorCampo(k){ const v=(cur().dados[k]||'').trim(); return CAMPOS[k]&&CAMPOS[k].t==='data'&&v?fmtData(v):v; }
+function valorCampo(k){ const v=(cur().dados[k]||'').trim(), t=CAMPOS[k]&&CAMPOS[k].t; return !v?v:t==='data'?fmtData(v):t==='mes'?fmtMes(v):v; }
 function copiar(txt,rot){
   const ok=()=>aviso('Copiado: '+(rot||txt).slice(0,70));
   const fb=()=>{ const t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select(); try{document.execCommand('copy');ok();}catch(e){aviso('Não consegui copiar.','verm');} t.remove(); };
@@ -680,18 +802,26 @@ function aviso(msg,cor){
 function htmlCampo(chave,req){
   const d=CAMPOS[chave]; if(!d) return '';
   if(d.t==='lista') return htmlSocios();
-  const v=cur().dados[chave]||'', isData=d.t==='data';
-  const mostra=isData?((!v&&rascunhoData[cur().id+'|'+chave]!==undefined)?rascunhoData[cur().id+'|'+chave]:fmtData(v)):v;
-  const inval=isData&&!v&&mostra.length===10;
+  const p=cur(), v=p.dados[chave]||'', isData=d.t==='data'||d.t==='mes', tam=d.t==='mes'?7:10, rk=p.id+'|'+chave;
+  const mostra=isData?((!v&&rascunhoData[rk]!==undefined)?rascunhoData[rk]:(d.t==='mes'?fmtMes(v):fmtData(v))):v;
+  const dig=v.replace(/\D/g,'');
+  const inval=(isData&&!v&&mostra.length===tam)||(d.t==='cnpj'&&dig.length===14&&!cnpjValido(dig));
+  const extra=d.t==='cnpj'?`<button type="button" class="mini" data-act="copy-num" data-k="${chave}" title="Copiar só os números">Só nº</button><button type="button" class="mini" data-act="copy-basico" title="Copiar o CNPJ básico (8 primeiros dígitos)">Básico</button>`
+    :d.t==='data'?`<button type="button" class="mini" data-act="hoje" data-k="${chave}" title="Preencher com a data de hoje">Hoje</button>`:'';
+  const ph=d.t==='mes'?'placeholder="mm/aaaa" maxlength="7" inputmode="numeric" ':d.t==='data'?'placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" ':'';
+  const nota=chave==='dataFimFiscalizacao'&&!v&&p.dados.dataCienciaOS?`<div class="peq">Vazio: vale a data ciente da OS + 90 dias (${fmtData(addDias(p.dados.dataCienciaOS,90))}).</div>`:'';
   return `<div class="campo${req&&!v.trim()?' falta':''}"><label>${esc(d.r)}${req?' <b class="obrig">(obrigatório para concluir)</b>':''}</label>
-    <div class="lin"><input type="text" ${isData?'inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" ':''}class="${inval?'invalida':''}" data-campo="${chave}" value="${esc(mostra)}" autocomplete="off">
-    <button type="button" class="mini" data-act="copy-campo" data-k="${chave}" title="Copiar">Copiar</button>${d.t==='cnpj'?`<button type="button" class="mini" data-act="copy-num" data-k="${chave}" title="Copiar só os números">Só nº</button>`:''}</div></div>`;
+    <div class="lin"><input type="text" ${ph}class="${inval?'invalida':''}" data-campo="${chave}" value="${esc(mostra)}" autocomplete="off">
+    <button type="button" class="mini" data-act="copy-campo" data-k="${chave}" title="Copiar">Copiar</button>${extra}</div>${nota}</div>`;
 }
+function cpfDoNomeMei(p){ const m=(p.dados.nome||'').match(/(\d{11})\s*$/); return m&&cpfValido(m[1])?m[1]:null; }
 function htmlSocios(){
-  const p=cur();
-  return `<div class="campo socios"><label>Sócios / representantes</label>${p.socios.map(s=>`<div class="soc">
+  const p=cur(), mei=cpfDoNomeMei(p);
+  const sug=mei&&!p.socios.some(s=>(s.cpf||'').replace(/\D/g,'')===mei)?`<div class="sug">A razão social termina com um CPF (${fmtCpf(mei)}): é MEI? <button type="button" class="mini" data-act="socio-mei">Usar como sócio</button></div>`:'';
+  return `<div class="campo socios"><label>Sócios / representantes</label>${sug}${p.socios.map(s=>{ const dg=(s.cpf||'').replace(/\D/g,''), inv=dg.length===11&&!cpfValido(dg);
+    return `<div class="soc">
     <div class="lin"><input data-soc="${esc(s.id)}" data-f="nome" value="${esc(s.nome)}" placeholder="Nome do sócio" autocomplete="off"><button type="button" class="mini" data-act="copy-socio" data-id="${esc(s.id)}" data-f="nome">Copiar</button></div>
-    <div class="lin"><input data-soc="${esc(s.id)}" data-f="cpf" value="${esc(s.cpf)}" placeholder="CPF" inputmode="numeric" autocomplete="off"><button type="button" class="mini" data-act="copy-socio" data-id="${esc(s.id)}" data-f="cpf">Copiar</button><button type="button" class="mini" data-act="del-socio" data-id="${esc(s.id)}" title="Remover sócio">✕</button></div></div>`).join('')}
+    <div class="lin"><input data-soc="${esc(s.id)}" data-f="cpf" class="${inv?'invalida':''}" value="${esc(s.cpf)}" placeholder="CPF" inputmode="numeric" autocomplete="off"><button type="button" class="mini" data-act="copy-socio" data-id="${esc(s.id)}" data-f="cpf">Copiar</button><button type="button" class="mini" data-act="del-socio" data-id="${esc(s.id)}" title="Remover sócio">✕</button></div></div>`; }).join('')}
     <button type="button" class="btn" data-act="add-socio">＋ Adicionar sócio</button></div>`;
 }
 function htmlSocChips(){
@@ -718,16 +848,20 @@ function htmlPassos(p,info){
     const num=e.num+'.'+cont.slice(0,ps.nivel+1).join('.');
     const dorm=vis==='dormente';
     const cc=ps.cond?' cond-'+ps.cond:'';
-    const tagc=ps.condPropria?`<span class="tag t-${ps.condPropria}">${dorm?'SE ':''}${ROT_COND[ps.condPropria].tag}</span>`:'';
+    let tagc=ps.condPropria?`<span class="tag t-${ps.condPropria}">${dorm?'SE ':''}${ROT_COND[ps.condPropria].tag}</span>`:'';
+    if(ps.opcional) tagc+='<span class="tag t-opc">SE FOR O CASO</span>';
     if(ps.filhos){
       h+=`<li class="grupo n${ps.nivel}${cc}${dorm?' dorm':''}"><span class="pn">${esc(num)}</span>${fmtTexto(ps.texto)}${tagc}</li>`;
     } else {
-      const f=p.feito[ps.id];
-      h+=`<li class="passo n${ps.nivel}${cc}${f?' feito':''}${ps.conf?' conf':''}${dorm?' dorm':''}"><label>
-        <input type="checkbox" data-chk="${esc(ps.id)}" data-eid="${esc(e.id)}"${f?' checked':''}${travada||dormEtapa||dorm?' disabled':''}>
+      const f=p.feito[ps.id], na=!f&&p.naPasso[ps.id], bloq=travada||dormEtapa||dorm;
+      const bna=ps.opcional&&!f&&!bloq?`<button type="button" class="mini" data-act="passo-na" data-pid="${esc(ps.id)}" data-eid="${esc(e.id)}">${na?'voltar a considerar':'não se aplica'}</button>`:'';
+      const qd=f?`<span class="quando" title="Marcado em ${esc(new Date(f).toLocaleString('pt-BR'))}">✔ ${esc(fmtHora(f))}</span>`:na?`<span class="quando cinza">não se aplica · ${esc(fmtHora(na))}</span>`:'';
+      h+=`<li class="passo n${ps.nivel}${cc}${f?' feito':''}${na?' pna':''}${ps.conf?' conf':''}${dorm?' dorm':''}"><label>
+        <input type="checkbox" data-chk="${esc(ps.id)}" data-eid="${esc(e.id)}"${f?' checked':''}${bloq||na?' disabled':''}>
         <span><span class="pn">${esc(num)}</span><span class="pt">${fmtTexto(ps.texto)}</span>${tagc}</span></label>
-        ${f?`<span class="quando" title="Marcado em ${esc(new Date(f).toLocaleString('pt-BR'))}">✔ ${esc(fmtHora(f))}</span>`:''}</li>`;
+        ${bna}${qd}</li>`;
     }
+    (ps.dicas||[]).forEach(d=>{ h+=`<li class="dica${dorm?' dorm':''}" style="margin-left:${30+ps.nivel*20}px">💡 ${fmtTexto(d)}</li>`; });
   });
   return h+'</ul>';
 }
@@ -756,7 +890,7 @@ function htmlEtapa(p,info){
   if(info.proxima) tags+='<span class="tag t-prox">▶ PRÓXIMA</span>';
   if(info.prazo) tags+=`<span class="tag ${info.liberada?'t-ok':'t-prazo'}">⏳ ${esc(textoPrazo(info))}</span>`;
   let h=`<div class="${cls}" id="et-${esc(e.id)}"><div class="cab" data-act="toggle-etapa" data-id="${esc(e.id)}">
-    <span class="num">${esc(e.num)}</span><span class="tit">${esc(e.titulo)}${tags}</span>
+    <span class="num">${esc(e.num)}</span><span class="tit">${esc(e.titulo)}${tags}${e.sistema?`<span class="sis">🖥 ${esc(e.sistema)}</span>`:''}</span>
     <span class="cont">${info.folhas.length?info.feitos+'/'+info.folhas.length:''}</span><span>${aberta?'▾':'▸'}</span></div>`;
   if(aberta){
     h+='<div class="corpo">';
@@ -776,7 +910,7 @@ function htmlEtapa(p,info){
     (e.emails||[]).forEach(k=>{ h+=htmlEmail(k); });
     h+=htmlPassos(p,info);
     h+=htmlNotas(p,e);
-    const faltam=info.folhas.filter(x=>!p.feito[x.id]).length, fez=info.folhas.length-faltam;
+    const faltam=info.folhas.filter(x=>!p.feito[x.id]&&!p.naPasso[x.id]).length, fez=info.folhas.filter(x=>p.feito[x.id]).length;
     h+=`<div class="rodape">${vis==='ativa'&&!info.lock&&!info.na&&faltam?`<button type="button" class="btn" data-act="marcar-etapa" data-id="${esc(e.id)}" title="Marca todos os passos de uma vez (menos as conferências)">Marcar todos os passos desta etapa</button>`:''}${fez?`<button type="button" class="btn" data-act="desmarcar-etapa" data-id="${esc(e.id)}">Desmarcar todos</button>`:''}<button type="button" class="btn" data-act="na" data-id="${esc(e.id)}">${info.na?'Voltar a considerar esta etapa':'Não se aplica'}</button></div></div>`;
   }
   return h+'</div>';
@@ -784,6 +918,10 @@ function htmlEtapa(p,info){
 function faixasDe(p,c){
   const F=[], k=p.cond;
   if(arqEstado==='reconectar') F.push({cor:'amar',h:`Arquivo de dados desconectado. <button class="bf" data-act="arq-reconectar">Reconectar “${esc(arqH?arqH.name:'')}”</button> para continuar gravando tudo em um só arquivo.`});
+  prazosGerais(p,c).forEach(z=>{
+    if(z.tipo==='decadencia'&&z.rest<=30) F.push({cor:'verm pisca',h:`⚖ DECADÊNCIA: ${esc(txtRest(z))}. A ciência do lançamento precisa acontecer antes disso.`});
+    if(z.tipo==='fiscalizacao'&&z.rest<=15) F.push({cor:z.rest<=5?'verm pisca':'lara',h:`⏳ PRAZO DA FISCALIZAÇÃO: ${esc(txtRest(z))}.`});
+  });
   const q=(cond,txt)=>`<button class="bf" data-act="cond" data-c="${cond}" data-v="sim">Sim</button><button class="bf" data-act="cond" data-c="${cond}" data-v="nao">Não</button>`;
   if(k.baixada==='nv') F.push({cor:'verm pisca',h:`⚠ ATENÇÃO: situação cadastral NÃO VERIFICADA — a empresa está baixada? Isso muda o AINF (etapa 13). ${q('baixada')}`});
   if(k.baixada==='sim') F.push({cor:'roxo',h:'EMPRESA BAIXADA — o AINF tem bloco próprio (etapa 13). Anote as datas de início e encerramento da atividade (cartão CNPJ).'});
@@ -801,10 +939,13 @@ function faixasDe(p,c){
 function htmlOutros(){
   const L=[];
   S.processos.filter(p=>p.id!==S.atualId).forEach(p=>{
-    calc(p).infos.filter(i=>i.e.espera&&i.vis==='ativa'&&!i.manual&&!i.porPasso&&i.prazo.estado!=='semInicio').forEach(i=>{
+    const cc=calc(p), nome=p.dados.nome||p.dados.cnpj||'Sem nome', abre=`<button data-act="abrir-proc" data-id="${esc(p.id)}">abrir</button>`;
+    cc.infos.filter(i=>i.e.espera&&i.vis==='ativa'&&!i.manual&&!i.porPasso&&i.prazo.estado!=='semInicio').forEach(i=>{
       if(i.prazo.estado==='encerrado'&&i.prazo.rest<-10) return;
-      const nome=p.dados.nome||p.dados.cnpj||'Sem nome';
-      L.push(`<span><b>${esc(nome)}</b> — ${esc(ROT_COND[i.e.cond]?ROT_COND[i.e.cond].tag:'prazo')}: ${esc(textoPrazo(i))} <button data-act="abrir-proc" data-id="${esc(p.id)}">abrir</button></span>`);
+      L.push(`<span><b>${esc(nome)}</b> — ${esc(ROT_COND[i.e.cond]?ROT_COND[i.e.cond].tag:'prazo')}: ${esc(textoPrazo(i))} ${abre}</span>`);
+    });
+    prazosGerais(p,cc).forEach(z=>{
+      if((z.tipo==='decadencia'&&z.rest<=60)||(z.tipo==='fiscalizacao'&&z.rest<=30)) L.push(`<span><b>${esc(nome)}</b> — ${z.tipo==='decadencia'?'decadência':'prazo da fiscalização'}: ${esc(txtRest(z))} ${abre}</span>`);
     });
   });
   return L;
@@ -831,7 +972,8 @@ function renderTopo(p,c){
   const condH=Object.keys(ROT_COND).map(k=>{ const s=condEstado(p,k); return `<div class="cond s-${s} c-${k}"><span class="cl">${esc(ROT_COND[k].r)}</span>
     <button type="button" data-act="cond" data-c="${k}" data-v="sim" class="${s==='sim'?'on':''}">Sim</button>
     <button type="button" data-act="cond" data-c="${k}" data-v="nao" class="${s==='nao'?'on':''}">Não</button></div>`; }).join('');
-  $('barra').innerHTML=`<div class="prog"><div class="trilho"><div class="enche" style="width:${c.pct}%"></div></div><small><b>${c.pct}%</b> concluído · ${c.feitos} de ${c.total} passos</small></div>${condH}<div id="status"></div>`;
+  const pzH=prazosGerais(p,c).map(z=>`<div class="pz ${z.cor}">${z.tipo==='decadencia'?'⚖':'⏳'} ${esc(z.rot)}: ${esc(txtRest(z))}</div>`).join('');
+  $('barra').innerHTML=`<div class="prog"><div class="trilho"><div class="enche" style="width:${c.pct}%"></div></div><small><b>${c.pct}%</b> concluído · ${c.feitos} de ${c.total} passos</small></div>${pzH}${condH}<div id="status"></div>`;
   atualizarStatus();}
 function atualizarStatus(){
   const el=$('status'); if(!el) return; const p=cur(), api=!!window.showOpenFilePicker;
@@ -922,13 +1064,14 @@ const acoes = {
   'marcar-etapa':el=>{
     const p=cur(), c=window._calc, info=c.infos.find(i=>i.e.id===el.dataset.id), e=info.e;
     if(info.lock||info.vis!=='ativa'||info.na) return aviso('Esta etapa está travada, ainda não vale ou foi marcada como “não se aplica”.','amar');
-    const alvo=info.folhas.filter(x=>!p.feito[x.id]&&!x.conf&&!x.libera);
-    const fora=info.folhas.filter(x=>!p.feito[x.id]&&(x.conf||x.libera)).length;
-    if(!alvo.length) return aviso(fora?`Só restam ${fora} conferência(s): marque uma a uma.`:'Todos os passos já estão marcados.','amar');
+    const pend=x=>!p.feito[x.id]&&!p.naPasso[x.id], esp=x=>x.conf||x.libera||x.opcional;
+    const alvo=info.folhas.filter(x=>pend(x)&&!esp(x));
+    const fora=info.folhas.filter(x=>pend(x)&&esp(x)).length;
+    if(!alvo.length) return aviso(fora?`Só restam ${fora} passo(s) de conferência ou “se for o caso”: marque um a um.`:'Todos os passos já estão marcados.','amar');
     if(!confirmarEtapa(p,c,e)) return;
     const ts=agora(); alvo.forEach(x=>{ p.feito[x.id]=ts; }); p.abertas[e.id]=true;
     log(`Marcou todos os passos da etapa ${e.num} (${alvo.length} passos)`); salvar(); render();
-    if(fora) aviso(`${fora} conferência(s) ficaram de fora: marque uma a uma.`,'amar');
+    if(fora) aviso(`${fora} passo(s) de conferência ou “se for o caso” ficaram de fora: marque um a um.`,'amar');
   },
   'desmarcar-etapa':el=>{
     const p=cur(), info=window._calc.infos.find(i=>i.e.id===el.dataset.id), e=info.e;
@@ -941,12 +1084,13 @@ const acoes = {
     c.infos.forEach(i=>{
       if(i.vis!=='ativa'||i.na||i.lock) return;
       if(i.e.exigeBaixada&&p.cond.baixada==='nv'){ pulou.push(i.e.num); return; }
-      const alvo=i.folhas.filter(x=>!p.feito[x.id]&&!x.conf&&!x.libera);
-      fora+=i.folhas.filter(x=>!p.feito[x.id]&&(x.conf||x.libera)).length;
+      const pend=x=>!p.feito[x.id]&&!p.naPasso[x.id], esp=x=>x.conf||x.libera||x.opcional;
+      const alvo=i.folhas.filter(x=>pend(x)&&!esp(x));
+      fora+=i.folhas.filter(x=>pend(x)&&esp(x)).length;
       if(alvo.length){ lotes.push({e:i.e,alvo}); n+=alvo.length; }
     });
     if(!n) return aviso('Não há passos liberados para marcar.','amar');
-    if(!confirm(`Marcar ${n} passos em ${lotes.length} etapas de uma vez?\n\nFicam de fora: as conferências (${fora}), os passos que liberam esperas, as etapas travadas por prazo${pulou.length?' e a etapa '+pulou.join(', ')+' (a situação da empresa ainda não foi verificada)':''}.\n\nUse só para registrar o que você já fez de fato.`)) return;
+    if(!confirm(`Marcar ${n} passos em ${lotes.length} etapas de uma vez?\n\nFicam de fora: as conferências e os passos “se for o caso” (${fora}), os passos que liberam esperas, as etapas travadas por prazo${pulou.length?' e a etapa '+pulou.join(', ')+' (a situação da empresa ainda não foi verificada)':''}.\n\nUse só para registrar o que você já fez de fato.`)) return;
     const ts=agora(); lotes.forEach(l=>l.alvo.forEach(x=>{ p.feito[x.id]=ts; }));
     log(`Marcou tudo de uma vez: ${n} passos em ${lotes.length} etapas`); salvar(); render();
     aviso(`${n} passos marcados.`+(fora||pulou.length?' Conferências e etapas travadas ficaram de fora.':''),'amar');
@@ -956,6 +1100,13 @@ const acoes = {
   'copy-socio':el=>{ const s=cur().socios.find(x=>x.id===el.dataset.id); const v=s&&(s[el.dataset.f]||'').trim(); if(!v) return aviso('Campo vazio.','amar'); copiar(v); },
   'copy-email':el=>{ const m=S.emails[el.dataset.k]; const t=resolver((m&&m[el.dataset.f])||''); if(!t.trim()) return aviso(el.dataset.f==='assunto'?'O assunto está vazio.':'O modelo está vazio.','amar');
     if(t.includes('‹')) aviso('Há dados do processo ainda não preenchidos neste texto.','amar'); copiar(t,el.dataset.f==='assunto'?t:'e-mail copiado ('+t.length+' caracteres)'); },
+  'passo-na':el=>{ const p=cur(), pid=el.dataset.pid; if(p.naPasso[pid]) delete p.naPasso[pid]; else p.naPasso[pid]=agora(); p.abertas[el.dataset.eid]=true; salvar(); render(); },
+  'hoje':el=>{ const p=cur(), k=el.dataset.k; p.dados[k]=isoHoje(); delete rascunhoData[p.id+'|'+k]; salvar(); render(); aviso(CAMPOS[k].r+': '+fmtData(p.dados[k])); },
+  'copy-basico':()=>{ const v=DERIVADOS.cnpjBasico(cur()); if(!v) return aviso('Preencha o CNPJ primeiro.','amar'); copiar(v,'CNPJ básico '+v); },
+  'socio-mei':()=>{ const p=cur(), cpf=cpfDoNomeMei(p); if(!cpf) return;
+    const nome=(p.dados.nome||'').replace(/\s*\d{11}\s*$/,'').replace(/^\d{2}\.\d{3}\.\d{3}\s+/,'').trim();
+    let s=p.socios.find(x=>!x.nome&&!x.cpf); if(!s){ s={id:uid(),nome:'',cpf:''}; p.socios.push(s); }
+    s.nome=nome; s.cpf=fmtCpf(cpf); salvar(); render(); aviso('Sócio incluído: '+nome); },
   'arq-criar':arqCriar, 'arq-existente':arqExistente, 'arq-reconectar':arqReconectar, 'arq-desconectar':arqDesconectar,
   'aplicar-roteiro':()=>aplicarRoteiro(false),
   'aplicar-modelo':()=>aplicarRoteiro(true)
@@ -1095,13 +1246,17 @@ document.addEventListener('change',ev=>{
     r.readAsText(f); return; }
   if(el.dataset.soc){
     const s=p.socios.find(x=>x.id===el.dataset.soc);
-    if(s&&el.dataset.f==='cpf'){ const d=el.value.replace(/\D/g,''); if(d.length===11){ s.cpf=d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,'$1.$2.$3-$4'); el.value=s.cpf; salvar(); refreshSocChips(); } }
+    if(s&&el.dataset.f==='cpf'){ const d=el.value.replace(/\D/g,''); if(d.length===11){ s.cpf=fmtCpf(d); el.value=s.cpf; salvar(); refreshSocChips(); }
+      const inv=(d.length===11&&!cpfValido(d))||(d.length>0&&d.length!==11); el.classList.toggle('invalida',inv); if(inv) aviso('CPF inválido: confira os dígitos.','verm'); }
     return;
   }
   if(el.dataset.campo){
     const k=el.dataset.campo; let v=el.value;
-    if(CAMPOS[k].t==='data'){ if(!p.dados[k]&&el.value.trim()) aviso('Data incompleta ou inválida: digite no formato dd/mm/aaaa (ano com 4 dígitos).','amar'); return; }
-    if(CAMPOS[k].t==='cnpj'){ const d=v.replace(/\D/g,''); if(d.length===14){ v=d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'); el.value=v; p.dados[k]=v; } }
+    if(CAMPOS[k].t==='data'||CAMPOS[k].t==='mes'){ if(!p.dados[k]&&el.value.trim()) aviso(CAMPOS[k].t==='mes'?'Mês incompleto ou inválido: digite no formato mm/aaaa.':'Data incompleta ou inválida: digite no formato dd/mm/aaaa (ano com 4 dígitos).','amar'); return; }
+    if(CAMPOS[k].t==='cnpj'){ const d=v.replace(/\D/g,''); if(d.length===14){ v=d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'); el.value=v; p.dados[k]=v; }
+      const inv=(d.length===14&&!cnpjValido(d))||(d.length>0&&d.length!==14); el.classList.toggle('invalida',inv); if(inv) aviso('CNPJ inválido: confira os dígitos.','verm');
+      document.querySelectorAll('[data-campo="cnpj"]').forEach(o=>{ if(o!==el){ o.value=v; o.classList.toggle('invalida',inv); } }); }
+    if(k==='nome') document.querySelectorAll('.campo.socios').forEach(w=>{ w.outerHTML=htmlSocios(); }); // sugestão de sócio para MEI
     salvar(); refreshChips();
   }
 });
@@ -1114,22 +1269,28 @@ function isoDeDigitos(d){
   const t=new Date(aa,mm-1,dd); if(t.getFullYear()!==aa||t.getMonth()!==mm-1||t.getDate()!==dd) return null;
   return `${aa}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
 }
-function campoData(el,k,p){
-  const bruto=el.value.trim(), colou=/^\d{4}-\d{2}-\d{2}$/.test(bruto);
-  const dig=colou?bruto.slice(8,10)+bruto.slice(5,7)+bruto.slice(0,4):bruto.replace(/\D/g,'').slice(0,8);
-  const txt=mascaraData(dig); el.value=txt;
-  const novo=isoDeDigitos(dig)||'', antes=p.dados[k]||'', rk=p.id+'|'+k;
+const mascaraMes=d=>d.slice(0,2)+(d.length>2?'/'+d.slice(2,6):'');
+function isoDeMes(d){ if(d.length!==6) return null; const mm=+d.slice(0,2), aa=+d.slice(2,6); if(mm<1||mm>12||aa<1900||aa>2100) return null; return `${aa}-${String(mm).padStart(2,'0')}`; }
+function campoData(el,k,p){ // datas (dd/mm/aaaa) e meses (mm/aaaa)
+  const mes=CAMPOS[k].t==='mes', n=mes?6:8, bruto=el.value.trim();
+  let dig;
+  if(!mes&&/^\d{4}-\d{2}-\d{2}$/.test(bruto)) dig=bruto.slice(8,10)+bruto.slice(5,7)+bruto.slice(0,4); // colou aaaa-mm-dd
+  else if(mes&&/^\d{4}-\d{2}$/.test(bruto)) dig=bruto.slice(5,7)+bruto.slice(0,4);
+  else dig=bruto.replace(/\D/g,'').slice(0,n);
+  const txt=mes?mascaraMes(dig):mascaraData(dig); el.value=txt;
+  const novo=(mes?isoDeMes(dig):isoDeDigitos(dig))||'', antes=p.dados[k]||'', rk=p.id+'|'+k;
   p.dados[k]=novo;
   if(novo||!dig.length) delete rascunhoData[rk]; else rascunhoData[rk]=txt; // guarda o que está sendo digitado
-  el.classList.toggle('invalida',dig.length===8&&!novo);
+  el.classList.toggle('invalida',dig.length===n&&!novo);
   document.querySelectorAll(`[data-campo="${k}"]`).forEach(o=>{ if(o!==el) o.value=txt; });
   salvar(); refreshChips();
+  if(novo&&k==='periodoFim'&&p.dados.periodoInicio&&novo<p.dados.periodoInicio) aviso('O fim do período está antes do início: confira.','amar');
   if(novo!==antes) render(); // prazos, travas e faixas dependem das datas (o foco é devolvido ao campo)
 }
 document.addEventListener('input',ev=>{
   const el=ev.target, p=cur();
   if(el.dataset.campo){ const k=el.dataset.campo;
-    if(CAMPOS[k].t==='data'){ campoData(el,k,p); return; }
+    if(CAMPOS[k].t==='data'||CAMPOS[k].t==='mes'){ campoData(el,k,p); return; }
     p.dados[k]=el.value; salvar(); refreshChips();
     document.querySelectorAll(`[data-campo="${k}"]`).forEach(o=>{ if(o!==el) o.value=el.value; }); }
   else if(el.dataset.draft!==undefined){ (drafts[el.dataset.draft]=drafts[el.dataset.draft]||{texto:'',lemb:false}).texto=el.value; }

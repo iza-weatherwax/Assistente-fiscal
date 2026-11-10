@@ -10,6 +10,16 @@ Um único arquivo, `assistente-fiscal.html`. Basta abri-lo no navegador (Chrome 
 4. Preencha os **dados do processo** (CNPJ, OS, TIAF…) uma só vez: eles aparecem nas etapas em que são usados, com botão de copiar. Os textos em azul dentro dos passos também copiam ao clicar.
 5. Use as observações de cada etapa; marque “Lembrete” para a nota ficar em destaque até ser resolvida.
 
+## Ajudas dentro das etapas
+
+- **Sistema e usuário:** abaixo do título de cada etapa aparece em que sistema ela é feita e com qual usuário (ex.: “GFT · usuário do Divino” na etapa 3 e “GFT · seu usuário de auditor” na etapa 5).
+- **Dicas em amarelo (💡):** logo abaixo dos passos, com os avisos do tutorial (clicar na lupa no GSN, conferir o ano, salvar como OS1…).
+- **Período fiscalizado:** digite uma vez “de” e “até” (mm/aaaa); os botões de copiar já trazem cada formato que os sistemas pedem: 01/01/2021 e 31/12/2021 (OS, NFe-cidades), 01/2021 e 12/2021 (Simples Nacional) e 2021 (GSN).
+- **Botão “Hoje”** nos campos de data e botão **“Básico”** no CNPJ (8 primeiros dígitos, para o GSN e o Lavrar AINF).
+- **CNPJ e CPF conferidos:** se o dígito verificador não bater, o campo fica vermelho.
+- **MEI:** se a razão social terminar com um CPF, a página oferece incluí-lo como sócio.
+- **Passos “se for o caso”:** têm o botão “não se aplica”, que conta como resolvido sem marcar como feito.
+
 ## Sócios, e-mails prontos e marcação em lote
 
 - **Sócios:** na etapa 4 (e na lateral) dá para incluir quantos sócios houver, cada um com nome e CPF e botões de copiar. Na etapa 7, o passo “Preencher apenas CPF” mostra um botão de copiar por sócio.
@@ -30,12 +40,16 @@ Um único arquivo, `assistente-fiscal.html`. Basta abri-lo no navegador (Chrome 
 |---|---|
 | Vermelho | Alerta ou pendência obrigatória |
 | Roxo | Empresa baixada |
-| Laranja | Prazo/espera (outra UF, intimação do Anexo V) |
+| Laranja | Prazo/espera (outra UF, intimação do Anexo V, prazo da fiscalização perto) |
 | Amarelo | Próxima etapa, conferências e lembretes |
 | Verde | Concluído |
 | Azul | Dados e botões de copiar |
 
 ## Prazos e travas
+
+- **Prazo da fiscalização:** 90 dias a partir da data ciente da OS (ou a data final que você anotar na etapa 7). Aparece no topo; a faixa acende quando faltam 15 dias ou menos. Para de contar quando a etapa 14 é concluída.
+- **Decadência:** anote na etapa 1 a decadência mais próxima que o Portal Apura mostrar. A faixa vermelha acende quando faltam 30 dias ou menos; para de contar quando a ciência do lançamento (etapa 15) é registrada.
+- Os dois prazos também aparecem no aviso de outros processos quando estão perto.
 
 - **Matriz em outra UF = Sim:** aparece a etapa 7A (10 dias corridos a partir do registro da ação fiscal no Simples Nacional). As etapas seguintes ficam travadas até o fim do prazo.
 - **Anexo V = Sim:** entram as etapas 9A e 9B (termo de intimação de 10 dias corridos contados da leitura do e-mail; só depois a apuração termina). A trava se desfaz ao marcar “Folha de pagamento recebida” ou quando o prazo vence.
