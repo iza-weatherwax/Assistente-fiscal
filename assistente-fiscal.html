@@ -339,8 +339,8 @@ e tiaf
 -- Nome do Documento Interno → {{Ordem de Serviço (OS)}}
 -- Número do Documento Interno → Nº da OS emitida: {{$os}}
 - Dados do Contato:
--- Preencher apenas CPF: {{@cpfSocios}}
-> MEI: o CPF do titular costuma estar no fim da razão social. Depois de digitar, clique em “Buscar Nome”.
+-- Preencher apenas o CPF do sócio/representante (o mesmo da etapa 4): {{@cpfSocios}}
+> O contato é o sócio/representante. No MEI é o próprio titular: o CPF costuma estar no fim da razão social. Depois de colar, clique em “Buscar Nome”.
 -- Data de Ciência do Início da Ação Fiscal → Data da emissão do TIAF (provisoriamente): {{$dataTIAF}}
 -- Hora da Ciência do Início da Ação Fiscal → Qualquer hora.
 -- Nome do Documento que deu início a Ação Fiscal → {{Termo de Início de Ação Fiscal (TIAF)}}
@@ -493,7 +493,7 @@ const ROT_COND = {
   anexoV:{r:'Anexo V (fator R)?',tag:'ANEXO V'}
 };
 const CHAVE = 'assistenteFiscal.v1';
-const ROTEIRO_VERSAO = 3; // sobe a cada mudança no roteiro padrão; processos com roteiro não editado são atualizados sozinhos
+const ROTEIRO_VERSAO = 4; // sobe a cada mudança no roteiro padrão; processos com roteiro não editado são atualizados sozinhos
 
 /* ============================================================
    Utilitários
@@ -815,10 +815,11 @@ function htmlCampo(chave,req){
     <button type="button" class="mini" data-act="copy-campo" data-k="${chave}" title="Copiar">Copiar</button>${extra}</div>${nota}</div>`;
 }
 function cpfDoNomeMei(p){ const m=(p.dados.nome||'').match(/(\d{11})\s*$/); return m&&cpfValido(m[1])?m[1]:null; }
+function htmlSugMei(p){ const mei=cpfDoNomeMei(p);
+  return mei&&!p.socios.some(s=>(s.cpf||'').replace(/\D/g,'')===mei)?`<div class="sug">A razão social termina com um CPF (${fmtCpf(mei)}): é MEI? <button type="button" class="mini" data-act="socio-mei">Usar como sócio</button></div>`:''; }
 function htmlSocios(){
-  const p=cur(), mei=cpfDoNomeMei(p);
-  const sug=mei&&!p.socios.some(s=>(s.cpf||'').replace(/\D/g,'')===mei)?`<div class="sug">A razão social termina com um CPF (${fmtCpf(mei)}): é MEI? <button type="button" class="mini" data-act="socio-mei">Usar como sócio</button></div>`:'';
-  return `<div class="campo socios"><label>Sócios / representantes</label>${sug}${p.socios.map(s=>{ const dg=(s.cpf||'').replace(/\D/g,''), inv=dg.length===11&&!cpfValido(dg);
+  const p=cur();
+  return `<div class="campo socios"><label>Sócios / representantes</label><div class="sugmei">${htmlSugMei(p)}</div>${p.socios.map(s=>{ const dg=(s.cpf||'').replace(/\D/g,''), inv=dg.length===11&&!cpfValido(dg);
     return `<div class="soc">
     <div class="lin"><input data-soc="${esc(s.id)}" data-f="nome" value="${esc(s.nome)}" placeholder="Nome do sócio" autocomplete="off"><button type="button" class="mini" data-act="copy-socio" data-id="${esc(s.id)}" data-f="nome">Copiar</button></div>
     <div class="lin"><input data-soc="${esc(s.id)}" data-f="cpf" class="${inv?'invalida':''}" value="${esc(s.cpf)}" placeholder="CPF" inputmode="numeric" autocomplete="off"><button type="button" class="mini" data-act="copy-socio" data-id="${esc(s.id)}" data-f="cpf">Copiar</button><button type="button" class="mini" data-act="del-socio" data-id="${esc(s.id)}" title="Remover sócio">✕</button></div></div>`; }).join('')}
@@ -826,7 +827,7 @@ function htmlSocios(){
 }
 function htmlSocChips(){
   const L=cur().socios.filter(s=>(s.cpf||'').trim());
-  return L.length?L.map(s=>`<button type="button" class="chip" data-act="copy-socio" data-id="${esc(s.id)}" data-f="cpf" title="Copiar CPF">${esc(s.cpf)}${s.nome?' — '+esc(s.nome):''}</button>`).join(' '):'<em>(cadastre o CPF dos sócios na etapa 4)</em>';
+  return L.length?L.map(s=>`<button type="button" class="chip" data-act="copy-socio" data-id="${esc(s.id)}" data-f="cpfnum" title="Copiar o CPF só com números">${esc(s.cpf)}${s.nome?' — '+esc(s.nome):''}</button>`).join(' '):'<em>(cadastre o CPF do sócio/representante na etapa 4)</em>';
 }
 function refreshSocChips(){ document.querySelectorAll('.socchips').forEach(el=>{ el.innerHTML=htmlSocChips(); }); }
 function htmlEmail(k){
@@ -1097,7 +1098,7 @@ const acoes = {
   },
   'add-socio':()=>{ const id=uid(); cur().socios.push({id,nome:'',cpf:''}); log('Sócio adicionado'); salvar(); render(); const i=document.querySelector(`[data-soc="${id}"][data-f="nome"]`); if(i) i.focus(); },
   'del-socio':el=>{ const p=cur(), s=p.socios.find(x=>x.id===el.dataset.id); if(s&&(s.nome||s.cpf)&&!confirm('Remover o sócio “'+(s.nome||s.cpf)+'”?')) return; p.socios=p.socios.filter(x=>x.id!==el.dataset.id); log('Sócio removido'); salvar(); render(); },
-  'copy-socio':el=>{ const s=cur().socios.find(x=>x.id===el.dataset.id); const v=s&&(s[el.dataset.f]||'').trim(); if(!v) return aviso('Campo vazio.','amar'); copiar(v); },
+  'copy-socio':el=>{ const s=cur().socios.find(x=>x.id===el.dataset.id), f=el.dataset.f; let v=s&&(s[f==='cpfnum'?'cpf':f]||'').trim(); if(!v) return aviso('Campo vazio.','amar'); if(f==='cpfnum') v=v.replace(/\D/g,''); copiar(v,(s.nome?s.nome+': ':'')+v); },
   'copy-email':el=>{ const m=S.emails[el.dataset.k]; const t=resolver((m&&m[el.dataset.f])||''); if(!t.trim()) return aviso(el.dataset.f==='assunto'?'O assunto está vazio.':'O modelo está vazio.','amar');
     if(t.includes('‹')) aviso('Há dados do processo ainda não preenchidos neste texto.','amar'); copiar(t,el.dataset.f==='assunto'?t:'e-mail copiado ('+t.length+' caracteres)'); },
   'passo-na':el=>{ const p=cur(), pid=el.dataset.pid; if(p.naPasso[pid]) delete p.naPasso[pid]; else p.naPasso[pid]=agora(); p.abertas[el.dataset.eid]=true; salvar(); render(); },
@@ -1256,7 +1257,7 @@ document.addEventListener('change',ev=>{
     if(CAMPOS[k].t==='cnpj'){ const d=v.replace(/\D/g,''); if(d.length===14){ v=d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'); el.value=v; p.dados[k]=v; }
       const inv=(d.length===14&&!cnpjValido(d))||(d.length>0&&d.length!==14); el.classList.toggle('invalida',inv); if(inv) aviso('CNPJ inválido: confira os dígitos.','verm');
       document.querySelectorAll('[data-campo="cnpj"]').forEach(o=>{ if(o!==el){ o.value=v; o.classList.toggle('invalida',inv); } }); }
-    if(k==='nome') document.querySelectorAll('.campo.socios').forEach(w=>{ w.outerHTML=htmlSocios(); }); // sugestão de sócio para MEI
+    if(k==='nome') document.querySelectorAll('.sugmei').forEach(w=>{ w.innerHTML=htmlSugMei(p); }); // sugestão de sócio para MEI
     salvar(); refreshChips();
   }
 });
