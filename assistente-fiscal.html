@@ -642,8 +642,22 @@ Fica o sujeito passivo $nome, CNPJ $cnpj, notificado do início da ação fiscal
 Ressaltamos que, conforme a Lei Complementar nº 203/2022, as comunicações oficiais do PTA ocorrerão prioritariamente por e-mail, utilizando-se os dados constantes no CNPJ ou no sistema de NFS-e municipal.
 
 Para o acompanhamento do processo, o sujeito passivo deverá efetuar cadastro no Portal do Cidadão.`},
-  intimacao:{titulo:'E-mail do Termo de Intimação (folha de pagamento — Anexo V)',assunto:'Termo de Intimação — OS nº $os (PAT nº $processoGRP)',corpo:''},
-  ainf:{titulo:'E-mail do AINF completo, TCAF e TC-CONT',assunto:'Auto de Infração — OS nº $os (PAT nº $processoGRP)',corpo:''},
+  intimacao:{titulo:'E-mail do Termo de Intimação (folha de pagamento — Anexo V)',assunto:'Termo de Intimação — OS nº $os (PAT nº $processoGRP)',corpo:
+`Prezado(a) contribuinte,
+
+Segue anexo o Termo de Intimação referente à Ordem de Serviço nº $os, no Processo Tributário Administrativo (PTA) nº $processoGRP.
+
+Fica o sujeito passivo $nome, CNPJ $cnpj, intimado a apresentar, no prazo de 10 (dez) dias contados da ciência desta intimação, a folha de pagamento necessária ao cálculo do fator R, conforme detalhado no Termo de Intimação anexo.
+
+Ressaltamos que, conforme a Lei Complementar nº 203/2022, as comunicações oficiais do PTA ocorrerão prioritariamente por e-mail.`},
+  ainf:{titulo:'E-mail do AINF completo, TCAF e TC-CONT',assunto:'Auto de Infração — OS nº $os (PAT nº $processoGRP)',corpo:
+`Prezado(a) contribuinte,
+
+Seguem anexos o Auto de Infração e Notificação Fiscal (AINF) nº $numAINF, o Termo de Conclusão de Ação Fiscal (TCAF), o Termo de Ciência de Lançamento (TC-CONT) e os demais documentos referentes à Ordem de Serviço nº $os, no Processo Tributário Administrativo (PTA) nº $processoGRP.
+
+Fica o sujeito passivo $nome, CNPJ $cnpj, notificado do lançamento. Os prazos para pagamento, parcelamento ou impugnação constam do AINF.
+
+Ressaltamos que, conforme a Lei Complementar nº 203/2022, as comunicações oficiais do PTA ocorrerão prioritariamente por e-mail.`},
   tcaf:{titulo:'Texto do TCAF (Termo de Conclusão)',semAssunto:true,assunto:'',corpo:
 `Nesta data, damos por concluída a ação fiscal realizada junto ao sujeito passivo acima identificado sem prejuízo do disposto no art. 149 da Lei nº 5.172, de 25 de outubro de 1966 (Código Tributário Nacional - CTN), não implicando na homologação prevista no art. 150 da mencionada norma federal, e não abrangendo outras irregularidades porventura existentes ou relacionadas. Nesse sentido, relatamos o que se segue abaixo quanto aos fatos observados e as providências adotadas:
 i. O presente trabalho fiscal é concernente à verificação do cumprimento das obrigações tributárias relativas aos tributos abrangidos pelo regime tributário do Simples Nacional (Regime Especial Unificado de Arrecadação de Tributos e Contribuições devidos pelas Microempresas e Empresas de Pequeno Porte), previsto na Lei Complementar nº 123, de 14 de dezembro de 2006.
@@ -687,6 +701,7 @@ function carregar(){
     S.emailsVersao=2;
   }
   if((S.emailsVersao||1)<3){ const t=S.emails.tcaf; if(t&&(t.corpo||'').includes(FRASE_DBC)&&!t.corpo.includes('$constatacoes')) t.corpo=t.corpo.replace(FRASE_DBC,'$constatacoes'); S.emailsVersao=3; }
+  if((S.emailsVersao||1)<4){ ['intimacao','ainf'].forEach(k=>{ if(S.emails[k]&&!(S.emails[k].corpo||'').trim()) S.emails[k].corpo=ep[k].corpo; }); S.emailsVersao=4; }
   if((S.globaisVersao||1)<2){ globaisPadrao().forEach(g=>{ if(!S.globais.some(x=>x.rotulo===g.rotulo)) S.globais.push(g); }); S.globaisVersao=2; }
   S.processos.forEach(normalizar);
   if(!S.processos.length) novoProcesso();

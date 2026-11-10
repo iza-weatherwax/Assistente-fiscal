@@ -25,7 +25,7 @@ Um único arquivo, `assistente-fiscal.html`. Basta abri-lo no navegador (Chrome 
 ## Sócios, e-mails prontos e marcação em lote
 
 - **Sócios:** na etapa 4 (e na lateral) dá para incluir quantos sócios houver, cada um com nome e CPF e botões de copiar. Na etapa 7, o passo “Preencher apenas CPF” mostra um botão de copiar por sócio.
-- **E-mails prontos:** a etapa 6 traz o texto do e-mail do TIAF pronto; é só clicar em “Copiar e-mail”. O texto é editável e vale para todos os processos. As etapas 9A (intimação) e 14 (AINF) têm modelos vazios para você colar os seus. Dentro do texto, `$nome`, `$cnpj`, `$os`… são trocados pelos dados do processo na hora de copiar.
+- **E-mails prontos:** a etapa 6 traz o texto do e-mail do TIAF pronto; é só clicar em “Copiar e-mail”. O texto é editável e vale para todos os processos. As etapas 9A (intimação) e 14 (AINF) também trazem um e-mail pronto, no mesmo estilo, para você revisar e ajustar. Dentro do texto, `$nome`, `$cnpj`, `$os`… são trocados pelos dados do processo na hora de copiar.
 - **Texto do TCAF (etapa 12):** o texto do Termo de Conclusão já vem preenchido com a data e o nº da notificação, o nº da ação fiscal e o que a apuração encontrou (DBC, SIR ou os dois, escolhido na etapa 9). A prévia mostra em vermelho o que ainda falta preencher; “Copiar texto” copia pronto para colar no GFT.
 - **Marcar em lote:** cada etapa tem “Marcar todos os passos desta etapa” e “Desmarcar todos”; no topo, “Marcar tudo”. Em lote, ficam de fora as conferências (em amarelo), os passos que liberam esperas, as etapas travadas e a etapa 13 enquanto a situação da empresa não for verificada.
 
