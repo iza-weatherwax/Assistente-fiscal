@@ -646,9 +646,8 @@ function normalizar(p){
   else if((p.roteiroVersao||1)<ROTEIRO_VERSAO){
     const editado=p.roteiroEditado||p.historico.some(h=>/^Roteiro editado/.test(h.texto));
     if(!editado){ // roteiro padrão antigo: troca pelo novo, mantendo o que já foi marcado
-      const nr=parseFonte(FONTE_PADRAO).etapas; mapearIds(p.roteiro,nr); p.roteiro=nr;
+      const nr=parseFonte(FONTE_PADRAO).etapas; mapearIds(p.roteiro,nr); p.roteiro=nr; p.roteiroVersao=ROTEIRO_VERSAO;
     }
-    p.roteiroVersao=ROTEIRO_VERSAO;
   }
   return p;
 }
@@ -748,9 +747,11 @@ const DERIVADOS={
   periodoIniMes:p=>fmtMes(p.dados.periodoInicio||''),
   periodoFimMes:p=>fmtMes(p.dados.periodoFim||''),
   anos:p=>{ const a=(p.dados.periodoInicio||'').slice(0,4), b=(p.dados.periodoFim||'').slice(0,4); return a&&b&&a!==b?a+' a '+b:(a||b); },
-  hoje:()=>fmtData(hoje())
+  hoje:()=>fmtData(hoje()),
+  cpfContato:p=>{ const s=p.socios.find(x=>(x.cpf||'').trim()); return s?s.cpf.replace(/\D/g,''):''; }, // nome usado nos roteiros antigos
+  socio:p=>{ const s=p.socios.find(x=>(x.nome||'').trim()); return s?s.nome:''; }
 };
-const ROT_DERIV={cnpjBasico:'CNPJ básico',periodoIniDia:'início do período',periodoFimDia:'fim do período',periodoIniMes:'início do período',periodoFimMes:'fim do período',anos:'ano-calendário',hoje:'hoje'};
+const ROT_DERIV={cnpjBasico:'CNPJ básico',periodoIniDia:'início do período',periodoFimDia:'fim do período',periodoIniMes:'início do período',periodoFimMes:'fim do período',anos:'ano-calendário',hoje:'hoje',cpfContato:'CPF do sócio/representante',socio:'sócio/representante'};
 // prazo da fiscalização (90 dias da data ciente da OS, ou a data que você anotar) e decadência
 function prazosGerais(p,c){
   const L=[], encerrado=t=>c.infos.some(i=>(i.e.encerra||[]).includes(t)&&i.concl);
@@ -777,7 +778,7 @@ function fmtTexto(t){
   let out='',ult=0;
   t.replace(/\{\{(.+?)\}\}/g,(m,tpl,i)=>{
     out+=esc(t.slice(ult,i));
-    if(tpl==='@cpfSocios') out+='<span class="socchips">'+htmlSocChips()+'</span>';
+    if(tpl==='@cpfSocios'||tpl==='$cpfContato') out+='<span class="socchips">'+htmlSocChips()+'</span>';
     else out+=`<button type="button" class="chip" data-act="copy-chip" data-tpl="${esc(tpl)}" title="Clique para copiar">${esc(resolver(tpl))}</button>`;
     ult=i+m.length; return m;
   });
@@ -916,8 +917,11 @@ function htmlEtapa(p,info){
   }
   return h+'</div>';
 }
+// roteiro deste processo é de uma versão anterior (editado ou vindo de um modelo antigo)?
+const roteiroAntigo=p=>((p.roteiroVersao||1)<ROTEIRO_VERSAO||p.roteiro.every(e=>!e.sistema))&&(p.manterRoteiro||0)<ROTEIRO_VERSAO;
 function faixasDe(p,c){
   const F=[], k=p.cond;
+  if(roteiroAntigo(p)) F.push({cor:'amar',h:'Este processo usa um roteiro antigo, de antes das últimas melhorias (dicas, sistemas, CPF do contato…). <button class="bf" data-act="atualizar-roteiro">Atualizar para o roteiro novo</button><button class="bf" data-act="manter-roteiro">Manter o meu</button>'});
   if(arqEstado==='reconectar') F.push({cor:'amar',h:`Arquivo de dados desconectado. <button class="bf" data-act="arq-reconectar">Reconectar “${esc(arqH?arqH.name:'')}”</button> para continuar gravando tudo em um só arquivo.`});
   prazosGerais(p,c).forEach(z=>{
     if(z.tipo==='decadencia'&&z.rest<=30) F.push({cor:'verm pisca',h:`⚖ DECADÊNCIA: ${esc(txtRest(z))}. A ciência do lançamento precisa acontecer antes disso.`});
@@ -1101,6 +1105,14 @@ const acoes = {
   'copy-socio':el=>{ const s=cur().socios.find(x=>x.id===el.dataset.id), f=el.dataset.f; let v=s&&(s[f==='cpfnum'?'cpf':f]||'').trim(); if(!v) return aviso('Campo vazio.','amar'); if(f==='cpfnum') v=v.replace(/\D/g,''); copiar(v,(s.nome?s.nome+': ':'')+v); },
   'copy-email':el=>{ const m=S.emails[el.dataset.k]; const t=resolver((m&&m[el.dataset.f])||''); if(!t.trim()) return aviso(el.dataset.f==='assunto'?'O assunto está vazio.':'O modelo está vazio.','amar');
     if(t.includes('‹')) aviso('Há dados do processo ainda não preenchidos neste texto.','amar'); copiar(t,el.dataset.f==='assunto'?t:'e-mail copiado ('+t.length+' caracteres)'); },
+  'atualizar-roteiro':()=>{
+    const p=cur(), modeloAntigo=!!S.modelo&&S.modelo.every(e=>!e.sistema);
+    if(!confirm('Trocar o roteiro deste processo pelo roteiro padrão atual?\n\nO que você já marcou continua marcado. Se você tinha mudado o texto do roteiro neste processo, essas mudanças são substituídas.'+(modeloAntigo?'\n\nO modelo salvo para os próximos processos também é antigo e passa a ser o padrão atual.':''))) return;
+    const nr=parseFonte(FONTE_PADRAO).etapas; mapearIds(p.roteiro,nr); p.roteiro=nr; p.roteiroVersao=ROTEIRO_VERSAO; p.roteiroEditado=false;
+    if(modeloAntigo) S.modelo=null;
+    salvar(); render(); aviso('Roteiro atualizado. As marcações foram mantidas.');
+  },
+  'manter-roteiro':()=>{ cur().manterRoteiro=ROTEIRO_VERSAO; salvar(); render(); },
   'passo-na':el=>{ const p=cur(), pid=el.dataset.pid; if(p.naPasso[pid]) delete p.naPasso[pid]; else p.naPasso[pid]=agora(); p.abertas[el.dataset.eid]=true; salvar(); render(); },
   'hoje':el=>{ const p=cur(), k=el.dataset.k; p.dados[k]=isoHoje(); delete rascunhoData[p.id+'|'+k]; salvar(); render(); aviso(CAMPOS[k].r+': '+fmtData(p.dados[k])); },
   'copy-basico':()=>{ const v=DERIVADOS.cnpjBasico(cur()); if(!v) return aviso('Preencha o CNPJ primeiro.','amar'); copiar(v,'CNPJ básico '+v); },
