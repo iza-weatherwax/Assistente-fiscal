@@ -154,6 +154,17 @@ dialog .ajuda{font-size:13px;background:var(--azul-bg);padding:8px 12px;border-r
 dialog .ajuda code{background:#fff;padding:0 4px;border-radius:3px}
 #erroFonte{color:var(--verm);font-weight:700;white-space:pre-wrap}
 dialog menu{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:10px 0 0}
+.campo.socios{grid-column:1/-1}
+.soc{border:1px solid #90caf9;border-radius:6px;background:#fff;padding:5px;margin-bottom:6px;display:grid;gap:4px}
+.email{border:2px solid var(--azul);border-radius:8px;background:#fff;padding:8px 10px;margin:10px 0;display:grid;gap:6px}
+.email textarea{width:100%;min-height:170px;padding:8px;border:1px solid #9aa7b8;border-radius:6px;resize:vertical}
+.email .ass{padding:4px 6px;border:1px solid #9aa7b8;border-radius:6px}
+.email .lin{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.peq{font-size:12px;color:#51606f;font-weight:400}
+.socchips{display:inline-flex;flex-wrap:wrap;gap:4px}
+.card.arq h2{background:#455a64;color:#fff}
+.card.arq p{margin:0 0 8px}
+.card.arq .lin2{display:flex;flex-wrap:wrap;gap:6px}
 </style>
 </head>
 <body>
@@ -163,10 +174,9 @@ dialog menu{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:10px 0 0}
     <select id="selProc" title="Processo aberto"></select>
     <div class="botoes">
       <button class="btn" data-act="novo">＋ Novo processo</button>
-      <button class="btn" data-act="salvar-json">Salvar JSON</button>
+      <button class="btn" data-act="marcar-tudo" title="Marca de uma vez os passos de todas as etapas liberadas (menos as conferências)">Marcar tudo</button>
+      <button class="btn" data-act="salvar-json" title="Baixa só este processo">Baixar JSON</button>
       <button class="btn" data-act="abrir-json">Abrir JSON</button>
-      <button class="btn" data-act="arquivo" id="btnArquivo" hidden>Salvar sempre em um arquivo…</button>
-      <button class="btn" data-act="salvar-todos">Salvar todos</button>
       <button class="btn" data-act="editar-roteiro">Editar roteiro</button>
       <button class="btn" data-act="excluir">Excluir processo</button>
     </div>
@@ -189,7 +199,7 @@ dialog menu{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:10px 0 0}
     <code>espera=campo:dias</code> cria um prazo (trava as etapas seguintes);
     <code>campos=os,processoGRP!</code> mostra campos de dados na etapa (<code>!</code> = obrigatório para concluir);
     <code>depende=10,11</code> avisa se essas etapas não estiverem prontas; <code>exigeBaixada</code> pede confirmação se a situação da empresa não foi verificada.<br>
-    Depois vêm: <code>! texto</code> (alerta vermelho), <code>i texto</code> (informação) e os passos
+    Depois vêm: <code>! texto</code> (alerta vermelho), <code>i texto</code> (informação), <code>e chave</code> (modelo de e-mail pronto para copiar) e os passos
     <code>- passo</code>, <code>-- subpasso</code>, <code>--- sub-subpasso</code>.
     No fim do passo: <code>@baixada</code> / <code>@outraUF</code> / <code>@anexoV</code> (só nessa condição),
     <code>@conf</code> (conferência, em amarelo), <code>@libera</code> (marcar este passo libera a espera).
@@ -233,8 +243,9 @@ i Obs.: Essa etapa deve prevalecer sobre as seguintes e influenciará na abertur
 - Verificar NFSe emitidas em todos os PAs fiscalizados, através do NFe-cidades.
 - Verificar divergências apontadas, e as porventura não identificadas pelo GSN (como por exemplo, não emissão de NFSe ou segregação incorreta de receitas).
 
-# 3 | Cadastrar o sujeito da ação fiscal e abrir a OS, através do login e senha Gerente/Diretor. | campos=inscMunicipal!,os
+# 3 | Cadastrar o sujeito da ação fiscal e abrir a OS, através do login e senha Gerente/Diretor. | campos=inscMunicipal!,os,dataCienciaOS
 ! Não esquecer de preencher a inscrição municipal.
+! IMPORTANTE: depois de abrir a OS, clicar em “Confirmar entrega”. Só assim o perfil de auditor consegue informar o nº do processo no GFT (etapa 5).
 - Cadastro Municipal > Contribuinte > + Novo
 - Fiscalização > Ordem de fiscalização > +Novo
 -- Classificação
@@ -243,13 +254,15 @@ i Obs.: Essa etapa deve prevalecer sobre as seguintes e influenciará na abertur
 -- Procedimento
 -- Contribuinte > + (adicionar)
 -- Auditor > + (adicionar)
+- Clicar em “Confirmar entrega” da OS: sem isso o perfil de auditor não consegue colocar o nº do processo (etapa 5) @conf
 
-# 4 | Incluir e-mail(s) e representante(s) do sujeito da ação fiscal no Cadastro Técnico Municipal (CTM), através do GRPweb. | campos=email,socio
+# 4 | Incluir e-mail(s) e representante(s) do sujeito da ação fiscal no Cadastro Técnico Municipal (CTM), através do GRPweb. | campos=email,socios
 i Obs.: A cada movimentação do processo digital o sujeito da ação fiscal receberá uma notificação.
 - Contribuinte > Contato
-- Contribuinte > Representante (incluir sócio).
+- Contribuinte > Representante (incluir sócio; se houver mais de um, incluir todos).
 
 # 5 | Gerar processo eletrônico no GRPweb | campos=processoGRP,os
+! Só dá para informar o nº do processo no GFT depois de confirmar a entrega da OS (etapa 3). Sem isso, o perfil de auditor não consegue.
 - Sistemas > Protocolos, Documentos e Fluxos (PDF) > Menu (☰) > Protocolos > Cadastros (Processos) > Novo:
 -- Tipo de Pessoa → Física ou Jurídica
 -- Contato/Solicitante → Preencher com nome do sujeito da ação fiscal: {{$nome}}
@@ -267,13 +280,14 @@ i Obs.: A cada movimentação do processo digital o sujeito da ação fiscal rec
 -- Fiscalização > Ordem de fiscalização > Pesquisar > Operações adicionais > Processo
 
 # 6 | Abrir TIAF no GFT (Publicenter), em seguida, notificar o sujeito da ação fiscal (via e-mail). | campos=numTIAF,dataTIAF,dataCienciaTIAF
+e tiaf
 - Fiscalização > Termo de início > + Novo
 - Após a emissão: Fiscalização > Termo de início > Pesquisar > Operações adicionais > Confirmar entrega
 - Enviar o TIAF por e-mail ao sujeito da ação fiscal
 - Anexar o TIAF ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
 - Anexar o comprovante de envio do e-mail ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
 
-# 7 | Registrar a Ação Fiscal no Portal do Simples Nacional (Entes Federados) | campos=dataCienciaOS,dataTIAF,numTIAF,cpfContato,dataRegistroSN
+# 7 | Registrar a Ação Fiscal no Portal do Simples Nacional (Entes Federados) | campos=dataCienciaOS,dataTIAF,numTIAF,dataRegistroSN
 - SEFISC > Registro da Ação Fiscal:
 -- Perfil → FISCAL DO ENTE
 - Ação Fiscal > Inclusão de Ação Fiscal
@@ -288,7 +302,7 @@ i Obs.: A cada movimentação do processo digital o sujeito da ação fiscal rec
 -- Nome do Documento Interno → {{Ordem de Serviço (OS)}}
 -- Número do Documento Interno → Nº da OS emitida: {{$os}}
 - Dados do Contato:
--- Preencher apenas CPF: {{$cpfContato}}
+-- Preencher apenas CPF: {{@cpfSocios}}
 -- Data de Ciência do Início da Ação Fiscal → Data da emissão do TIAF (provisoriamente): {{$dataTIAF}}
 -- Hora da Ciência do Início da Ação Fiscal → Qualquer hora.
 -- Nome do Documento que deu início a Ação Fiscal → {{Termo de Início de Ação Fiscal (TIAF)}}
@@ -315,6 +329,7 @@ i Enquanto o prazo não terminar, as etapas seguintes ficam TRAVADAS (dá para l
 - A apuração constatou Anexo V (fator R)? Responder no topo da página (Sim / Não)
 
 # 9A | Termo de intimação (10 dias): folha de pagamento — Anexo V / fator R | cond=anexoV | espera=dataCienciaIntimacao:10 | campos=dataCienciaIntimacao
+e intimacao
 i Apuração em PAUSA. Só depois de receber a folha de pagamento (ou do prazo vencer) a apuração é concluída e o XML do AINF é exportado.
 - Emitir o Termo de Intimação no GFT (10 dias para o contribuinte apresentar a folha de pagamento)
 - Após a emissão: confirmar a entrega no GFT
@@ -363,6 +378,7 @@ i Obs.: Essa etapa é necessária à realização da seguinte, uma vez que o TCA
 - Download “AINF Completo”
 
 # 14 | Enviar “AINF completo”, TCAF, Termo de Ciência de Lançamento (TC-CONT) e documentos complementares por e-mail, em seguida, anexá-los aos PTA no GRPweb. | campos=processoGRP!
+e ainf
 - Enviar por e-mail: AINF completo, TCAF, TC-CONT e documentos complementares
 - Anexar o AINF completo, o TCAF, o TC-CONT e os documentos complementares ao PTA no GRPweb
 - Anexar o comprovante de envio do e-mail ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
@@ -398,8 +414,7 @@ const CAMPOS = {
   cnpj:{r:'CNPJ',t:'cnpj'},
   inscMunicipal:{r:'Inscrição municipal'},
   email:{r:'E-mail do contribuinte'},
-  socio:{r:'Sócio / representante'},
-  cpfContato:{r:'CPF do contato (Simples Nacional)'},
+  socios:{r:'Sócios / representantes',t:'lista'},
   periodos:{r:'Ano-calendário / PAs fiscalizados'},
   os:{r:'Nº da OS'},
   dataCienciaOS:{r:'Data da entrega da OS (data ciente, no GFT)',t:'data'},
@@ -421,6 +436,7 @@ const ROT_COND = {
   anexoV:{r:'Anexo V (fator R)?',tag:'ANEXO V'}
 };
 const CHAVE = 'assistenteFiscal.v1';
+const ROTEIRO_VERSAO = 2; // sobe a cada mudança no roteiro padrão; processos com roteiro não editado são atualizados sozinhos
 
 /* ============================================================
    Utilitários
@@ -450,7 +466,7 @@ function parseFonte(txt){
       const num=partes[0], titulo=partes[1]||'';
       if(!num||!titulo){erros.push(`Linha ${n+1}: use "# número | título".`);return;}
       if(etapas.some(x=>x.num===num)){erros.push(`Linha ${n+1}: o número de etapa "${num}" está repetido.`);return;}
-      et={id:num,num,titulo,cond:null,espera:null,campos:[],depende:[],exigeBaixada:false,obs:[],passos:[]};
+      et={id:num,num,titulo,cond:null,espera:null,campos:[],depende:[],exigeBaixada:false,obs:[],emails:[],passos:[]};
       partes.slice(2).forEach(op=>{
         const i=op.indexOf('='); const k=i<0?op:op.slice(0,i).trim(), v=i<0?'':op.slice(i+1).trim();
         if(k==='cond'){ if(ROT_COND[v]) et.cond=v; else erros.push(`Linha ${n+1}: condição "${v}" desconhecida.`); }
@@ -464,6 +480,7 @@ function parseFonte(txt){
     if(!et){erros.push(`Linha ${n+1}: escreva primeiro a linha da etapa (# número | título).`);return;}
     if(l.startsWith('! ')) et.obs.push({tipo:'alerta',texto:l.slice(2)});
     else if(l.startsWith('i ')) et.obs.push({tipo:'info',texto:l.slice(2)});
+    else if(l.startsWith('e ')) et.emails.push(l.slice(2).trim());
     else if(l[0]==='-'){
       const m=l.match(/^(-+)\s*(.*)$/); let texto=m[2]; const nivel=Math.min(m[1].length-1,4);
       let cond=null,conf=false,libera=false;
@@ -492,6 +509,7 @@ function toFonte(etapas){
     if(e.exigeBaixada) op.push('exigeBaixada');
     const L=['# '+[e.num,e.titulo,...op].join(' | ')];
     e.obs.forEach(o=>L.push((o.tipo==='alerta'?'! ':'i ')+o.texto));
+    (e.emails||[]).forEach(k=>L.push('e '+k));
     e.passos.forEach(p=>L.push('-'.repeat(p.nivel+1)+' '+p.texto+(p.condPropria?' @'+p.condPropria:'')+(p.conf?' @conf':'')+(p.libera?' @libera':'')));
     return L.join('\n');
   }).join('\n\n')+'\n';
@@ -516,7 +534,7 @@ const ROTEIRO_PADRAO = (()=>{ const r=parseFonte(FONTE_PADRAO); r.etapas.forEach
 /* ============================================================
    Estado e persistência
    ============================================================ */
-let S, drafts={}, fh=null, fhProc=null, erroNavegador=false;
+let S, drafts={}, erroNavegador=false, arqH=null, arqEstado='nenhum', arqUltimo=null;
 const cur = () => S.processos.find(p=>p.id===S.atualId);
 function globaisPadrao(){ return [
   {id:uid()+'a',rotulo:'Meu nome',valor:''},
@@ -526,16 +544,40 @@ function globaisPadrao(){ return [
   {id:uid()+'e',rotulo:'Local de cadastro (GRP)',valor:'Departamento de Protocolos Tributários Digitais'},
   {id:uid()+'f',rotulo:'Local de arquivamento (GRP)',valor:'DEPARTAMENTO DE TRIBUTAÇÃO'}
 ]; }
+function emailsPadrao(){ return {
+  tiaf:{titulo:'E-mail do TIAF (notificação do início da ação fiscal)',assunto:'',corpo:
+`Fica o sujeito passivo acima identificado notificado do início da ação fiscal.
+Ressaltamos que, conforme a Lei Complementar nº 203/2022, as comunicações oficiais do Processo Tributário Administrativo (PTA) ocorrerão prioritariamente por e-mail, utilizando-se os dados constantes no CNPJ ou no sistema de NFS-e municipal.
+
+Para o acompanhamento do processo, o sujeito passivo deverá efetuar cadastro no Portal do Cidadão.`},
+  intimacao:{titulo:'E-mail do Termo de Intimação (folha de pagamento — Anexo V)',assunto:'',corpo:''},
+  ainf:{titulo:'E-mail do AINF completo, TCAF e TC-CONT',assunto:'',corpo:''}
+}; }
 function normalizar(p){
+  const novoRot=!p.roteiro;
   p.dados=p.dados||{}; p.extras=p.extras||[]; p.cond=Object.assign({baixada:'nv',outraUF:'nv',anexoV:'nv'},p.cond||{});
   p.feito=p.feito||{}; p.na=p.na||{}; p.liberacoes=p.liberacoes||{}; p.notas=p.notas||{}; p.notaGeral=p.notaGeral||'';
   p.historico=p.historico||[]; p.abertas=p.abertas||{}; p.roteiro=p.roteiro||clone(ROTEIRO_PADRAO);
   p.id=p.id||uid(); p.criadoEm=p.criadoEm||agora(); p.atualizadoEm=p.atualizadoEm||agora();
+  p.socios=p.socios||[];
+  if(!p.socios.length&&(p.dados.socio||p.dados.cpfContato)){ // versão antiga: um sócio só
+    p.socios.push({id:uid(),nome:p.dados.socio||'',cpf:p.dados.cpfContato||''}); delete p.dados.socio; delete p.dados.cpfContato;
+  }
+  if(novoRot) p.roteiroVersao=ROTEIRO_VERSAO;
+  else if((p.roteiroVersao||1)<ROTEIRO_VERSAO){
+    const editado=p.roteiroEditado||p.historico.some(h=>/^Roteiro editado/.test(h.texto));
+    if(!editado){ // roteiro padrão antigo: troca pelo novo, mantendo o que já foi marcado
+      const nr=parseFonte(FONTE_PADRAO).etapas; mapearIds(p.roteiro,nr); p.roteiro=nr;
+      p.historico.push({t:agora(),texto:'Roteiro padrão atualizado (versão '+ROTEIRO_VERSAO+'); marcações mantidas'});
+    }
+    p.roteiroVersao=ROTEIRO_VERSAO;
+  }
   return p;
 }
 function carregar(){
   try{ const t=localStorage.getItem(CHAVE); if(t) S=JSON.parse(t); }catch(e){ erroNavegador=true; }
   if(!S||!Array.isArray(S.processos)) S={v:1,atualId:null,processos:[],globais:globaisPadrao(),modelo:null};
+  S.emails=S.emails||{}; const ep=emailsPadrao(); Object.keys(ep).forEach(k=>{ if(!S.emails[k]) S.emails[k]=ep[k]; });
   S.processos.forEach(normalizar);
   if(!S.processos.length) novoProcesso();
   if(!cur()) S.atualId=S.processos[0].id;
@@ -544,11 +586,12 @@ let tSalvar;
 function salvar(){ const p=cur(); if(p) p.atualizadoEm=agora(); clearTimeout(tSalvar); tSalvar=setTimeout(persistir,150); }
 function persistir(){
   try{ localStorage.setItem(CHAVE,JSON.stringify(S)); erroNavegador=false; }catch(e){ erroNavegador=true; }
-  escreverArquivo(); atualizarStatus();
+  arqEscrever(); atualizarStatus();
 }
 function log(texto){ const p=cur(); p.historico.push({t:agora(),texto}); }
 function novoProcesso(){
-  const p=normalizar({id:uid(),roteiro:clone(S.modelo||ROTEIRO_PADRAO)});
+  const p=normalizar({id:uid(),roteiro:clone(S.modelo||ROTEIRO_PADRAO),roteiroVersao:ROTEIRO_VERSAO,roteiroEditado:!!S.modelo});
+  p.socios.push({id:uid(),nome:'',cpf:''}); // já vem uma linha de sócio pronta para preencher
   S.processos.push(p); S.atualId=p.id; log('Processo criado');
 }
 
@@ -615,7 +658,8 @@ function fmtTexto(t){
   let out='',ult=0;
   t.replace(/\{\{(.+?)\}\}/g,(m,tpl,i)=>{
     out+=esc(t.slice(ult,i));
-    out+=`<button type="button" class="chip" data-act="copy-chip" data-tpl="${esc(tpl)}" title="Clique para copiar">${esc(resolver(tpl))}</button>`;
+    if(tpl==='@cpfSocios') out+='<span class="socchips">'+htmlSocChips()+'</span>';
+    else out+=`<button type="button" class="chip" data-act="copy-chip" data-tpl="${esc(tpl)}" title="Clique para copiar">${esc(resolver(tpl))}</button>`;
     ult=i+m.length; return m;
   });
   return out+esc(t.slice(ult));
@@ -638,10 +682,33 @@ function aviso(msg,cor){
    ============================================================ */
 function htmlCampo(chave,req){
   const d=CAMPOS[chave]; if(!d) return '';
+  if(d.t==='lista') return htmlSocios();
   const v=cur().dados[chave]||'';
   return `<div class="campo${req&&!v.trim()?' falta':''}"><label>${esc(d.r)}${req?' <b class="obrig">(obrigatório para concluir)</b>':''}</label>
     <div class="lin"><input type="${d.t==='data'?'date':'text'}" data-campo="${chave}" value="${esc(v)}" autocomplete="off">
     <button type="button" class="mini" data-act="copy-campo" data-k="${chave}" title="Copiar">Copiar</button>${d.t==='cnpj'?`<button type="button" class="mini" data-act="copy-num" data-k="${chave}" title="Copiar só os números">Só nº</button>`:''}</div></div>`;
+}
+function htmlSocios(){
+  const p=cur();
+  return `<div class="campo socios"><label>Sócios / representantes</label>${p.socios.map(s=>`<div class="soc">
+    <div class="lin"><input data-soc="${esc(s.id)}" data-f="nome" value="${esc(s.nome)}" placeholder="Nome do sócio" autocomplete="off"><button type="button" class="mini" data-act="copy-socio" data-id="${esc(s.id)}" data-f="nome">Copiar</button></div>
+    <div class="lin"><input data-soc="${esc(s.id)}" data-f="cpf" value="${esc(s.cpf)}" placeholder="CPF" inputmode="numeric" autocomplete="off"><button type="button" class="mini" data-act="copy-socio" data-id="${esc(s.id)}" data-f="cpf">Copiar</button><button type="button" class="mini" data-act="del-socio" data-id="${esc(s.id)}" title="Remover sócio">✕</button></div></div>`).join('')}
+    <button type="button" class="btn" data-act="add-socio">＋ Adicionar sócio</button></div>`;
+}
+function htmlSocChips(){
+  const L=cur().socios.filter(s=>(s.cpf||'').trim());
+  return L.length?L.map(s=>`<button type="button" class="chip" data-act="copy-socio" data-id="${esc(s.id)}" data-f="cpf" title="Copiar CPF">${esc(s.cpf)}${s.nome?' — '+esc(s.nome):''}</button>`).join(' '):'<em>(cadastre o CPF dos sócios na etapa 4)</em>';
+}
+function refreshSocChips(){ document.querySelectorAll('.socchips').forEach(el=>{ el.innerHTML=htmlSocChips(); }); }
+function htmlEmail(k){
+  S.emails[k]=S.emails[k]||{titulo:k,assunto:'',corpo:''};
+  const m=S.emails[k];
+  return `<div class="email"><div><b>✉ ${esc(m.titulo)}</b> <span class="peq">— modelo único, vale para todos os processos (pode editar aqui mesmo)</span></div>
+    <input class="ass" data-email="${esc(k)}" data-f="assunto" value="${esc(m.assunto)}" placeholder="Assunto (opcional)">
+    <textarea data-email="${esc(k)}" data-f="corpo" placeholder="Cole aqui o seu modelo de e-mail…">${esc(m.corpo)}</textarea>
+    <div class="lin"><button type="button" class="btn prim" data-act="copy-email" data-k="${esc(k)}" data-f="corpo">Copiar e-mail</button>
+    <button type="button" class="btn" data-act="copy-email" data-k="${esc(k)}" data-f="assunto">Copiar assunto</button>
+    <span class="peq">Dica: $nome, $cnpj, $os… são preenchidos com os dados do processo na hora de copiar.</span></div></div>`;
 }
 function htmlPassos(p,info){
   const e=info.e, cont=[0,0,0,0,0]; let h='<ul class="passos">';
@@ -707,14 +774,17 @@ function htmlEtapa(p,info){
     }
     const cs=e.campos.filter(c=>CAMPOS[c.chave]&&(!c.c||condEstado(p,c.c)!=='nao'));
     if(cs.length) h+=`<div class="campos">${cs.map(c=>htmlCampo(c.chave,c.req)).join('')}</div>`;
+    (e.emails||[]).forEach(k=>{ h+=htmlEmail(k); });
     h+=htmlPassos(p,info);
     h+=htmlNotas(p,e);
-    h+=`<div class="rodape"><button type="button" class="btn" data-act="na" data-id="${esc(e.id)}">${info.na?'Voltar a considerar esta etapa':'Não se aplica'}</button></div></div>`;
+    const faltam=info.folhas.filter(x=>!p.feito[x.id]).length, fez=info.folhas.length-faltam;
+    h+=`<div class="rodape">${vis==='ativa'&&!info.lock&&!info.na&&faltam?`<button type="button" class="btn" data-act="marcar-etapa" data-id="${esc(e.id)}" title="Marca todos os passos de uma vez (menos as conferências)">Marcar todos os passos desta etapa</button>`:''}${fez?`<button type="button" class="btn" data-act="desmarcar-etapa" data-id="${esc(e.id)}">Desmarcar todos</button>`:''}<button type="button" class="btn" data-act="na" data-id="${esc(e.id)}">${info.na?'Voltar a considerar esta etapa':'Não se aplica'}</button></div></div>`;
   }
   return h+'</div>';
 }
 function faixasDe(p,c){
   const F=[], k=p.cond;
+  if(arqEstado==='reconectar') F.push({cor:'amar',h:`Arquivo de dados desconectado. <button class="bf" data-act="arq-reconectar">Reconectar “${esc(arqH?arqH.name:'')}”</button> para continuar gravando tudo em um só arquivo.`});
   const q=(cond,txt)=>`<button class="bf" data-act="cond" data-c="${cond}" data-v="sim">Sim</button><button class="bf" data-act="cond" data-c="${cond}" data-v="nao">Não</button>`;
   if(k.baixada==='nv') F.push({cor:'verm pisca',h:`⚠ ATENÇÃO: situação cadastral NÃO VERIFICADA — a empresa está baixada? Isso muda o AINF (etapa 13). ${q('baixada')}`});
   if(k.baixada==='sim') F.push({cor:'roxo',h:'EMPRESA BAIXADA — o AINF tem bloco próprio (etapa 13). Anote as datas de início e encerramento da atividade (cartão CNPJ).'});
@@ -754,6 +824,7 @@ function htmlLateral(p){
     <button type="button" class="btn" data-act="add-global">＋ Dado fixo</button>
     <div style="font-size:12px;color:#51606f;margin-top:6px">Não guarde senhas aqui.</div></div></div>`;
   h+=`<div class="card"><h2>Anotações gerais do processo</h2><div class="cc"><textarea data-geral placeholder="O que você pensou, dúvidas, pontos para voltar…">${esc(p.notaGeral)}</textarea></div></div>`;
+  h+=htmlArquivoCard();
   h+=`<div class="card"><details><summary>Histórico (${p.historico.length})</summary><div class="cc hist">${p.historico.slice().reverse().slice(0,300).map(x=>`<div><time>${esc(new Date(x.t).toLocaleString('pt-BR'))}</time>${esc(x.texto)}</div>`).join('')||'Nada ainda.'}</div></details></div>`;
   return h;
 }
@@ -763,16 +834,17 @@ function renderTopo(p,c){
     <button type="button" data-act="cond" data-c="${k}" data-v="sim" class="${s==='sim'?'on':''}">Sim</button>
     <button type="button" data-act="cond" data-c="${k}" data-v="nao" class="${s==='nao'?'on':''}">Não</button></div>`; }).join('');
   $('barra').innerHTML=`<div class="prog"><div class="trilho"><div class="enche" style="width:${c.pct}%"></div></div><small><b>${c.pct}%</b> concluído · ${c.feitos} de ${c.total} passos</small></div>${condH}<div id="status"></div>`;
-  atualizarStatus();
-  $('btnArquivo').hidden=!window.showSaveFilePicker;
-}
+  atualizarStatus();}
 function atualizarStatus(){
-  const el=$('status'); if(!el) return; const p=cur();
-  let t=erroNavegador?'<span class="alerta">⚠ Não consegui salvar no navegador — use “Salvar JSON”.</span> ':'Salvo automaticamente neste navegador. ';
-  if(fh&&fhProc===p.id) t+=`Gravando também em <b>${esc(fh.name)}</b>.`;
-  else if(!p.ultimoExport) t+='<span class="alerta">JSON ainda não salvo.</span>';
-  else if(p.atualizadoEm>p.ultimoExport) t+=`<span class="alerta">Há alterações depois do último JSON salvo (${esc(fmtHora(p.ultimoExport))}).</span>`;
-  else t+=`Último JSON salvo em ${esc(fmtHora(p.ultimoExport))}.`;
+  const el=$('status'); if(!el) return; const p=cur(), api=!!window.showOpenFilePicker;
+  let t=erroNavegador?'<span class="alerta">⚠ Não consegui salvar no navegador — grave em arquivo ou baixe o JSON.</span> ':'Salvo automaticamente neste navegador. ';
+  if(arqEstado==='conectado') t+=`Gravado também em <b>${esc(arqH.name)}</b>${arqUltimo?' (última gravação às '+esc(new Date(arqUltimo).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))+')':''}.`;
+  else if(arqEstado==='reconectar') t+='<span class="alerta">Arquivo de dados desconectado.</span> <button type="button" class="mini" data-act="arq-reconectar">Reconectar</button>';
+  else if(arqEstado==='erro') t+='<span class="alerta">Falha ao gravar no arquivo de dados.</span> <button type="button" class="mini" data-act="arq-reconectar">Tentar de novo</button>';
+  else if(api) t+='<span class="alerta">Nenhum arquivo de dados conectado</span> (veja “Arquivo de dados” ao lado: um único JSON, atualizado sozinho).';
+  else if(!p.ultimoExport) t+='<span class="alerta">JSON ainda não baixado.</span>';
+  else if(p.atualizadoEm>p.ultimoExport) t+=`<span class="alerta">Há alterações depois do último JSON baixado (${esc(fmtHora(p.ultimoExport))}).</span>`;
+  else t+=`Último JSON baixado em ${esc(fmtHora(p.ultimoExport))}.`;
   el.innerHTML=t;
 }
 function render(){
@@ -791,6 +863,12 @@ function render(){
    Ações
    ============================================================ */
 function irPara(id){ const p=cur(); p.abertas[id]=true; salvar(); render(); const el=$('et-'+id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+function confirmarEtapa(p,c,e){
+  const pend=e.depende.map(d=>c.infos.find(i=>i.e.num===d||i.e.id===d)).filter(i=>i&&i.vis==='ativa'&&!i.concl);
+  if(pend.length&&!confirm('Atenção: ainda não foram concluídas as etapas: '+pend.map(i=>i.e.num+' ('+i.e.titulo.slice(0,45)+')').join('; ')+'.\n\nMarcar mesmo assim?')) return false;
+  if(e.exigeBaixada&&p.cond.baixada==='nv'&&!confirm('A situação cadastral NÃO foi verificada: a empresa está baixada?\nSe estiver, o AINF muda (bloco de empresa baixada).\n\nMarcar mesmo assim?')) return false;
+  return true;
+}
 function alternarPasso(pid,eid,marcar){
   const p=cur(), c=window._calc, info=c.infos.find(i=>i.e.id===eid), e=info.e, ps=e.passos.find(x=>x.id===pid);
   if(p.abertas[eid]===undefined) p.abertas[eid]=true; // não fecha a etapa sozinha depois de você mexer nela
@@ -830,20 +908,57 @@ const acoes = {
   'excluir':()=>{ const p=cur(); if(!confirm('Excluir o processo “'+(p.dados.nome||p.dados.cnpj||'sem nome')+'” deste navegador?\nSe quiser guardar, salve o JSON antes.')) return;
     S.processos=S.processos.filter(x=>x.id!==p.id); if(!S.processos.length) novoProcesso(); S.atualId=S.processos[0].id; persistir(); render(); },
   'abrir-proc':el=>{ S.atualId=el.dataset.id; persistir(); render(); window.scrollTo(0,0); },
-  'salvar-json':()=>{ const p=cur(); baixar(`processo_${slug(p.dados.nome||p.dados.cnpj)}_${new Date().toISOString().slice(0,10)}.json`,exportObj(p)); p.ultimoExport=agora(); persistir(); },
-  'salvar-todos':()=>{ baixar(`assistente-fiscal_todos_${new Date().toISOString().slice(0,10)}.json`,{app:'assistente-fiscal',versao:1,exportadoEm:agora(),processos:S.processos,globais:S.globais,modelo:S.modelo}); S.processos.forEach(p=>p.ultimoExport=agora()); persistir(); },
+  'salvar-json':()=>{ const p=cur(); baixar(`processo_${slug(p.dados.nome||p.dados.cnpj)}.json`,exportObj(p)); p.ultimoExport=agora(); persistir(); },
+  'baixar-tudo':()=>{ baixar('assistente-fiscal-dados.json',dadosArquivo()); S.processos.forEach(p=>p.ultimoExport=agora()); persistir(); },
   'abrir-json':()=>$('arq').click(),
-  'arquivo':escolherArquivo,
   'editar-roteiro':()=>{ $('fonte').value=toFonte(cur().roteiro); $('erroFonte').textContent=''; $('dlg').showModal(); },
   'fechar-roteiro':()=>$('dlg').close(),
   'restaurar-roteiro':()=>{ if(confirm('Trocar o texto do editor pelo roteiro original? (Só vale depois de aplicar.)')) $('fonte').value=FONTE_PADRAO.trim()+'\n'; },
+  'marcar-etapa':el=>{
+    const p=cur(), c=window._calc, info=c.infos.find(i=>i.e.id===el.dataset.id), e=info.e;
+    if(info.lock||info.vis!=='ativa'||info.na) return aviso('Esta etapa está travada, ainda não vale ou foi marcada como “não se aplica”.','amar');
+    const alvo=info.folhas.filter(x=>!p.feito[x.id]&&!x.conf&&!x.libera);
+    const fora=info.folhas.filter(x=>!p.feito[x.id]&&(x.conf||x.libera)).length;
+    if(!alvo.length) return aviso(fora?`Só restam ${fora} conferência(s): marque uma a uma.`:'Todos os passos já estão marcados.','amar');
+    if(!confirmarEtapa(p,c,e)) return;
+    const ts=agora(); alvo.forEach(x=>{ p.feito[x.id]=ts; }); p.abertas[e.id]=true;
+    log(`Marcou todos os passos da etapa ${e.num} (${alvo.length} passos)`); salvar(); render();
+    if(fora) aviso(`${fora} conferência(s) ficaram de fora: marque uma a uma.`,'amar');
+  },
+  'desmarcar-etapa':el=>{
+    const p=cur(), info=window._calc.infos.find(i=>i.e.id===el.dataset.id), e=info.e;
+    const feitos=info.folhas.filter(x=>p.feito[x.id]); if(!feitos.length) return;
+    if(!confirm(`Desmarcar os ${feitos.length} passos marcados da etapa ${e.num}?`)) return;
+    feitos.forEach(x=>{ delete p.feito[x.id]; }); log(`Desmarcou todos os passos da etapa ${e.num} (${feitos.length})`); salvar(); render();
+  },
+  'marcar-tudo':()=>{
+    const p=cur(), c=window._calc, lotes=[]; let n=0, fora=0; const pulou=[];
+    c.infos.forEach(i=>{
+      if(i.vis!=='ativa'||i.na||i.lock) return;
+      if(i.e.exigeBaixada&&p.cond.baixada==='nv'){ pulou.push(i.e.num); return; }
+      const alvo=i.folhas.filter(x=>!p.feito[x.id]&&!x.conf&&!x.libera);
+      fora+=i.folhas.filter(x=>!p.feito[x.id]&&(x.conf||x.libera)).length;
+      if(alvo.length){ lotes.push({e:i.e,alvo}); n+=alvo.length; }
+    });
+    if(!n) return aviso('Não há passos liberados para marcar.','amar');
+    if(!confirm(`Marcar ${n} passos em ${lotes.length} etapas de uma vez?\n\nFicam de fora: as conferências (${fora}), os passos que liberam esperas, as etapas travadas por prazo${pulou.length?' e a etapa '+pulou.join(', ')+' (a situação da empresa ainda não foi verificada)':''}.\n\nUse só para registrar o que você já fez de fato.`)) return;
+    const ts=agora(); lotes.forEach(l=>l.alvo.forEach(x=>{ p.feito[x.id]=ts; }));
+    log(`Marcou tudo de uma vez: ${n} passos em ${lotes.length} etapas`); salvar(); render();
+    aviso(`${n} passos marcados.`+(fora||pulou.length?' Conferências e etapas travadas ficaram de fora.':''),'amar');
+  },
+  'add-socio':()=>{ const id=uid(); cur().socios.push({id,nome:'',cpf:''}); log('Sócio adicionado'); salvar(); render(); const i=document.querySelector(`[data-soc="${id}"][data-f="nome"]`); if(i) i.focus(); },
+  'del-socio':el=>{ const p=cur(), s=p.socios.find(x=>x.id===el.dataset.id); if(s&&(s.nome||s.cpf)&&!confirm('Remover o sócio “'+(s.nome||s.cpf)+'”?')) return; p.socios=p.socios.filter(x=>x.id!==el.dataset.id); log('Sócio removido'); salvar(); render(); },
+  'copy-socio':el=>{ const s=cur().socios.find(x=>x.id===el.dataset.id); const v=s&&(s[el.dataset.f]||'').trim(); if(!v) return aviso('Campo vazio.','amar'); copiar(v); },
+  'copy-email':el=>{ const m=S.emails[el.dataset.k]; const t=resolver((m&&m[el.dataset.f])||''); if(!t.trim()) return aviso(el.dataset.f==='assunto'?'O assunto está vazio.':'O modelo está vazio.','amar');
+    if(t.includes('‹')) aviso('Há dados do processo ainda não preenchidos neste texto.','amar'); copiar(t,el.dataset.f==='assunto'?t:'e-mail copiado ('+t.length+' caracteres)'); },
+  'arq-criar':arqCriar, 'arq-existente':arqExistente, 'arq-reconectar':arqReconectar, 'arq-desconectar':arqDesconectar,
   'aplicar-roteiro':()=>aplicarRoteiro(false),
   'aplicar-modelo':()=>aplicarRoteiro(true)
 };
 function aplicarRoteiro(modelo){
   const r=parseFonte($('fonte').value);
   if(r.erros.length||!r.etapas.length){ $('erroFonte').textContent=r.erros.join('\n')||'O roteiro está vazio.'; return; }
-  const p=cur(); mapearIds(p.roteiro,r.etapas); p.roteiro=r.etapas;
+  const p=cur(); mapearIds(p.roteiro,r.etapas); p.roteiro=r.etapas; p.roteiroEditado=true;
   if(modelo) S.modelo=clone(r.etapas);
   log('Roteiro editado'+(modelo?' (e salvo como modelo)':'')); salvar(); $('dlg').close(); render();
   aviso(modelo?'Roteiro aplicado e salvo como modelo dos próximos processos.':'Roteiro aplicado a este processo.');
@@ -852,38 +967,112 @@ function aplicarRoteiro(modelo){
 /* ============================================================
    JSON: exportar, importar, arquivo
    ============================================================ */
-function exportObj(p){ return {app:'assistente-fiscal',versao:1,exportadoEm:agora(),processo:p,globais:S.globais}; }
+function exportObj(p){ return {app:'assistente-fiscal',versao:2,exportadoEm:agora(),processo:p,globais:S.globais,emails:S.emails}; }
+function dadosArquivo(){ return {app:'assistente-fiscal',versao:2,salvoEm:agora(),processos:S.processos,globais:S.globais,emails:S.emails,modelo:S.modelo}; }
 function baixar(nome,obj){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}));
   a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-  aviso('JSON salvo: '+nome);
+  aviso('JSON baixado: '+nome);
+}
+const virgem=p=>!Object.keys(p.feito).length&&!Object.values(p.dados).some(Boolean)&&!Object.keys(p.notas).length&&!p.extras.length&&!p.socios.some(s=>s.nome||s.cpf)&&!p.notaGeral&&p.historico.length<=1;
+function limparVirgem(n){ if(n&&S.processos.length===1&&virgem(S.processos[0])) S.processos=[]; } // some o processo vazio criado automaticamente
+function escolherAtual(){
+  if(!S.processos.length) novoProcesso();
+  else if(!cur()) S.atualId=S.processos.slice().sort((a,b)=>(b.atualizadoEm||'').localeCompare(a.atualizadoEm||''))[0].id;
+}
+function mesclarExtras(obj){
+  (obj.globais||[]).forEach(g=>{ if(g&&g.rotulo&&!S.globais.some(x=>x.rotulo===g.rotulo)) S.globais.push({id:uid(),rotulo:g.rotulo,valor:g.valor||''}); });
+  Object.keys(obj.emails||{}).forEach(k=>{ const e=obj.emails[k], a=S.emails[k]; if(e&&(!a||(!a.corpo&&e.corpo))) S.emails[k]=e; });
+  if(!S.modelo&&obj.modelo) S.modelo=obj.modelo;
+}
+function mesclar(obj){ // junta o conteúdo do arquivo com o que já está aqui: o mais recente de cada processo vence
+  const lista=obj&&obj.processo?[obj.processo]:(obj&&Array.isArray(obj.processos)?obj.processos:null);
+  if(!lista) throw new Error('formato desconhecido');
+  limparVirgem(lista.length); let n=0;
+  lista.forEach(pr=>{ normalizar(pr); const i=S.processos.findIndex(x=>x.id===pr.id);
+    if(i<0){ S.processos.push(pr); n++; } else if((pr.atualizadoEm||'')>(S.processos[i].atualizadoEm||'')){ S.processos[i]=pr; n++; } });
+  mesclarExtras(obj); escolherAtual(); return n;
 }
 function importar(obj){
   const lista=obj&&obj.processo?[obj.processo]:(obj&&Array.isArray(obj.processos)?obj.processos:null);
   if(!lista) throw new Error('arquivo não parece ser do Assistente Fiscal');
-  let n=0;
+  limparVirgem(lista.length); let n=0;
   lista.forEach(pr=>{
     normalizar(pr); const i=S.processos.findIndex(x=>x.id===pr.id);
     if(i>=0){ if(!confirm('O processo “'+(pr.dados.nome||pr.dados.cnpj||'sem nome')+'” já existe aqui.\nSubstituir pela versão do arquivo?')) return; S.processos[i]=pr; }
     else S.processos.push(pr);
     S.atualId=pr.id; n++;
   });
-  (obj.globais||[]).forEach(g=>{ if(g&&g.rotulo&&!S.globais.some(x=>x.rotulo===g.rotulo)) S.globais.push({id:uid(),rotulo:g.rotulo,valor:g.valor||''}); });
-  persistir(); render(); aviso(n+' processo(s) aberto(s) do JSON.');
+  mesclarExtras(obj); escolherAtual(); persistir(); render(); aviso(n+' processo(s) aberto(s) do JSON.');
 }
-async function escolherArquivo(){
+
+/* ---- Arquivo de dados único (Chrome/Edge): um só JSON, regravado a cada alteração ---- */
+const TIPOS_JSON=[{description:'JSON',accept:{'application/json':['.json']}}];
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('assistenteFiscal',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbGet(k){ const d=await idb(); return new Promise((res,rej)=>{ const q=d.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); }
+async function idbSet(k,v){ const d=await idb(); return new Promise((res,rej)=>{ const t=d.transaction('kv','readwrite'); if(v===undefined) t.objectStore('kv').delete(k); else t.objectStore('kv').put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+async function arqIniciar(){
+  if(!window.showOpenFilePicker) return;
   try{
-    const p=cur();
-    fh=await window.showSaveFilePicker({suggestedName:`processo_${slug(p.dados.nome||p.dados.cnpj)}.json`,types:[{description:'JSON',accept:{'application/json':['.json']}}]});
-    fhProc=p.id; await escreverArquivo(); aviso('Daqui para frente cada alteração também é gravada em '+fh.name);
-  }catch(e){ if(e.name!=='AbortError') aviso('Não consegui usar esse arquivo: '+e.message,'verm'); }
+    const h=await idbGet('arq'); if(!h) return; arqH=h;
+    const perm=await h.queryPermission({mode:'readwrite'});
+    if(perm==='granted') await arqSincronizar(); else arqEstado='reconectar';
+  }catch(e){ arqH=null; arqEstado='nenhum'; }
+  render();
 }
+async function arqSincronizar(){ // lê o arquivo, junta com o que há aqui e regrava
+  const f=await arqH.getFile(), txt=await f.text();
+  if(txt.trim()){
+    let obj=null, n=0, ok=false; try{ obj=JSON.parse(txt); }catch(e){}
+    if(obj){ try{ n=mesclar(obj); ok=true; }catch(e){} }
+    if(!ok&&!confirm('O arquivo “'+arqH.name+'” não parece ser um arquivo do Assistente Fiscal. Se continuar, o conteúdo dele será substituído pelos seus dados.\n\nContinuar?')){ arqH=null; arqEstado='nenhum'; return false; }
+    if(n) aviso(n+' processo(s) trazido(s) ou atualizado(s) a partir do arquivo.');
+  }
+  arqEstado='conectado'; persistir(); return true;
+}
+async function arqLembrar(h){
+  try{ await idbSet('arq',h); aviso('Pronto: tudo será gravado em '+h.name+' a cada alteração.'); }
+  catch(e){ aviso('Gravando em '+h.name+', mas não consegui lembrar o arquivo para a próxima vez: terá de reconectar.','amar'); }
+}
+async function arqCriar(){
+  try{
+    const h=await window.showSaveFilePicker({suggestedName:'assistente-fiscal-dados.json',types:TIPOS_JSON});
+    arqH=h; if(await arqSincronizar()) await arqLembrar(h);
+  }catch(e){ if(e.name!=='AbortError') aviso('Não consegui usar esse arquivo: '+e.message,'verm'); }
+  render();
+}
+async function arqExistente(){
+  try{
+    const [h]=await window.showOpenFilePicker({types:TIPOS_JSON,multiple:false});
+    const perm=await h.requestPermission({mode:'readwrite'});
+    if(perm!=='granted'){ aviso('Sem permissão de escrita nesse arquivo.','verm'); return; }
+    arqH=h; if(await arqSincronizar()) await arqLembrar(h);
+  }catch(e){ if(e.name!=='AbortError') aviso('Não consegui usar esse arquivo: '+e.message,'verm'); }
+  render();
+}
+async function arqReconectar(){
+  try{
+    const perm=await arqH.requestPermission({mode:'readwrite'});
+    if(perm!=='granted') aviso('Sem permissão para o arquivo.','verm'); else await arqSincronizar();
+  }catch(e){ aviso('Não consegui reconectar: '+e.message,'verm'); }
+  render();
+}
+async function arqDesconectar(){ arqH=null; arqEstado='nenhum'; arqUltimo=null; try{ await idbSet('arq',undefined); }catch(e){} render(); }
 let escrevendo=false, pendente=false;
-async function escreverArquivo(){
-  if(!fh) return; if(escrevendo){pendente=true;return;} escrevendo=true;
-  try{ const p=S.processos.find(x=>x.id===fhProc); if(p){ const w=await fh.createWritable(); await w.write(JSON.stringify(exportObj(p),null,2)); await w.close(); p.ultimoExport=agora(); atualizarStatus(); } }
-  catch(e){ aviso('Falha ao gravar no arquivo: '+e.message,'verm'); fh=null; }
-  escrevendo=false; if(pendente){pendente=false;escreverArquivo();}
+async function arqEscrever(){
+  if(!arqH||arqEstado!=='conectado') return;
+  if(escrevendo){ pendente=true; return; } escrevendo=true;
+  try{ const w=await arqH.createWritable(); await w.write(JSON.stringify(dadosArquivo(),null,2)); await w.close(); arqUltimo=agora(); }
+  catch(e){ arqEstado='erro'; aviso('Falha ao gravar no arquivo de dados: '+e.message,'verm'); render(); }
+  escrevendo=false; atualizarStatus(); if(pendente){ pendente=false; arqEscrever(); }
+}
+function htmlArquivoCard(){
+  const api=!!window.showOpenFilePicker; let c='';
+  if(!api) c='<p>Este navegador não deixa a página gravar direto em um arquivo. No <b>Chrome</b> ou no <b>Edge</b> dá para ter <b>um único JSON</b> atualizado sozinho. Aqui, “Baixar tudo” gera sempre o mesmo nome (<code>assistente-fiscal-dados.json</code>): substitua o arquivo anterior.</p>';
+  else if(arqEstado==='conectado') c=`<p>✔ Gravando em <b>${esc(arqH.name)}</b> a cada alteração. É um arquivo só, com todos os processos, os dados fixos e os modelos de e-mail.</p><div class="lin2"><button type="button" class="btn" data-act="arq-desconectar">Desconectar</button></div>`;
+  else if(arqEstado==='reconectar'||arqEstado==='erro') c=`<p>O arquivo <b>${esc(arqH?arqH.name:'')}</b> precisa ser reconectado para continuar gravando.</p><div class="lin2"><button type="button" class="btn prim" data-act="arq-reconectar">Reconectar</button><button type="button" class="btn" data-act="arq-desconectar">Escolher outro</button></div>`;
+  else c='<p>Guarde <b>todos os processos em um único JSON</b>, atualizado sozinho a cada alteração, sem gerar vários arquivos. Escolha o arquivo uma vez; o navegador lembra.</p><div class="lin2"><button type="button" class="btn prim" data-act="arq-criar">Criar arquivo…</button><button type="button" class="btn" data-act="arq-existente">Usar arquivo existente…</button></div>';
+  return `<div class="card arq"><h2>Arquivo de dados (JSON único)</h2><div class="cc">${c}<div class="lin2" style="margin-top:8px"><button type="button" class="btn" data-act="baixar-tudo">Baixar tudo agora</button></div></div></div>`;
 }
 
 /* ============================================================
@@ -899,6 +1088,11 @@ document.addEventListener('change',ev=>{
   if(el.id==='arq'){ const f=el.files[0]; el.value=''; if(!f) return; const r=new FileReader();
     r.onload=()=>{ try{ importar(JSON.parse(r.result)); }catch(e){ aviso('Não consegui abrir esse JSON: '+e.message,'verm'); } };
     r.readAsText(f); return; }
+  if(el.dataset.soc){
+    const s=p.socios.find(x=>x.id===el.dataset.soc);
+    if(s&&el.dataset.f==='cpf'){ const d=el.value.replace(/\D/g,''); if(d.length===11){ s.cpf=d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,'$1.$2.$3-$4'); el.value=s.cpf; salvar(); refreshSocChips(); } }
+    return;
+  }
   if(el.dataset.campo){
     const k=el.dataset.campo; let v=el.value;
     if(CAMPOS[k].t==='cnpj'){ const d=v.replace(/\D/g,''); if(d.length===14){ v=d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'); el.value=v; p.dados[k]=v; } }
@@ -913,6 +1107,8 @@ document.addEventListener('input',ev=>{
     document.querySelectorAll(`[data-campo="${k}"]`).forEach(o=>{ if(o!==el) o.value=el.value; }); }
   else if(el.dataset.draft!==undefined){ (drafts[el.dataset.draft]=drafts[el.dataset.draft]||{texto:'',lemb:false}).texto=el.value; }
   else if(el.dataset.geral!==undefined){ p.notaGeral=el.value; salvar(); }
+  else if(el.dataset.soc){ const s=p.socios.find(y=>y.id===el.dataset.soc); if(s){ s[el.dataset.f]=el.value; salvar(); refreshSocChips(); } }
+  else if(el.dataset.email){ const m=S.emails[el.dataset.email]; if(m){ m[el.dataset.f]=el.value; salvar(); } }
   else if(el.dataset.ex){ const x=p.extras.find(y=>y.id===el.dataset.ex); if(x){ x[el.dataset.f]=el.value; salvar(); } }
   else if(el.dataset.gl){ const x=S.globais.find(y=>y.id===el.dataset.gl); if(x){ x[el.dataset.f]=el.value; salvar(); } }
 });
@@ -925,7 +1121,7 @@ setInterval(()=>{ // virou o dia: atualiza as contagens de prazo
   if(hoje().getTime()!==diaRender&&!document.activeElement.matches('input,textarea,select')){ diaRender=hoje().getTime(); render(); }
 },60000);
 
-carregar(); persistir(); render();
+carregar(); persistir(); render(); arqIniciar();
 </script>
 </body>
 </html>
