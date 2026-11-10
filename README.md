@@ -15,7 +15,9 @@ Um único arquivo, `assistente-fiscal.html`. Basta abri-lo no navegador (Chrome 
 - **Sistema e usuário:** abaixo do título de cada etapa aparece em que sistema ela é feita e com qual usuário (ex.: “GFT · usuário do Divino” na etapa 3 e “GFT · seu usuário de auditor” na etapa 5).
 - **Dicas em amarelo (💡):** logo abaixo dos passos, com os avisos do tutorial (clicar na lupa no GSN, conferir o ano, salvar como OS1…).
 - **Período fiscalizado:** digite uma vez “de” e “até” (mm/aaaa); os botões de copiar já trazem cada formato que os sistemas pedem: 01/01/2021 e 31/12/2021 (OS, NFe-cidades), 01/2021 e 12/2021 (Simples Nacional) e 2021 (GSN).
-- **Botão “Hoje”** nos campos de data e botão **“Básico”** no CNPJ (8 primeiros dígitos, para o GSN e o Lavrar AINF).
+- **Botão “Hoje”** nos campos de data e campo **CNPJ básico** (8 primeiros dígitos, antes do 0001), preenchido sozinho a partir do CNPJ, para o GSN e o Lavrar AINF.
+- **Notificação prévia (etapa 2):** lembrete para salvar a notificação do GSN e campos para o nº da notificação (monitoramento fiscal) e a data de ciência.
+- **CNAE** (etapa 0): aparece de novo na apuração (etapa 9), para achar o anexo correto.
 - **CNPJ e CPF conferidos:** se o dígito verificador não bater, o campo fica vermelho.
 - **MEI:** se a razão social terminar com um CPF, a página oferece incluí-lo como sócio.
 - **Passos “se for o caso”:** têm o botão “não se aplica”, que conta como resolvido sem marcar como feito.
@@ -24,6 +26,7 @@ Um único arquivo, `assistente-fiscal.html`. Basta abri-lo no navegador (Chrome 
 
 - **Sócios:** na etapa 4 (e na lateral) dá para incluir quantos sócios houver, cada um com nome e CPF e botões de copiar. Na etapa 7, o passo “Preencher apenas CPF” mostra um botão de copiar por sócio.
 - **E-mails prontos:** a etapa 6 traz o texto do e-mail do TIAF pronto; é só clicar em “Copiar e-mail”. O texto é editável e vale para todos os processos. As etapas 9A (intimação) e 14 (AINF) têm modelos vazios para você colar os seus. Dentro do texto, `$nome`, `$cnpj`, `$os`… são trocados pelos dados do processo na hora de copiar.
+- **Texto do TCAF (etapa 12):** o texto do Termo de Conclusão já vem preenchido com a data e o nº da notificação, o nº da ação fiscal e o que a apuração encontrou (DBC, SIR ou os dois, escolhido na etapa 9). A prévia mostra em vermelho o que ainda falta preencher; “Copiar texto” copia pronto para colar no GFT.
 - **Marcar em lote:** cada etapa tem “Marcar todos os passos desta etapa” e “Desmarcar todos”; no topo, “Marcar tudo”. Em lote, ficam de fora as conferências (em amarelo), os passos que liberam esperas, as etapas travadas e a etapa 13 enquanto a situação da empresa não for verificada.
 
 ## Guardar e consultar processos antigos

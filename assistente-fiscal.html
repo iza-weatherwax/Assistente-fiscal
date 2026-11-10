@@ -174,6 +174,11 @@ li.dica{list-style:none;font-size:13px;background:#fffbe6;border-left:3px solid 
 .pz.verde{border-color:var(--verde);background:var(--verde-bg);color:var(--verde)}
 .pz.lara{border-color:var(--lara);background:var(--lara-bg);color:var(--lara)}
 .pz.verm{border-color:var(--verm);background:var(--verm);color:#fff}
+.campo select{flex:1;min-width:0;padding:4px 6px;border:1px solid #90a4ae;border-radius:6px;background:#fff}
+.campo.falta select{border:2px solid var(--verm);background:var(--verm-bg)}
+details.previa summary{padding:2px 0;font-size:13px;color:var(--azul)}
+.prev{white-space:pre-wrap;font-size:13px;background:#f8fafc;border:1px solid var(--borda);border-radius:6px;padding:8px;max-height:320px;overflow:auto}
+mark.faltadado{background:var(--verm-bg);color:var(--verm);font-weight:700;border-radius:3px;padding:0 2px}
 .sug{background:var(--amar-bg);border:1px dashed var(--amar);border-radius:6px;padding:4px 8px;margin:4px 0;font-size:13px}
 </style>
 </head>
@@ -209,7 +214,7 @@ li.dica{list-style:none;font-size:13px;background:#fffbe6;border-left:3px solid 
     <code>espera=campo:dias</code> cria um prazo (trava as etapas seguintes);
     <code>campos=os,processoGRP!</code> mostra campos de dados na etapa (<code>!</code> = obrigatório para concluir);
     <code>depende=10,11</code> avisa se essas etapas não estiverem prontas; <code>exigeBaixada</code> pede confirmação se a situação da empresa não foi verificada; <code>sistema=GFT</code> mostra o sistema/usuário da etapa; <code>encerra=fiscalizacao</code> (ou <code>decadencia</code>) para de contar esse prazo quando a etapa é concluída.<br>
-    Depois vêm: <code>! texto</code> (alerta vermelho), <code>i texto</code> (informação), <code>e chave</code> (modelo de e-mail pronto para copiar) e os passos
+    Depois vêm: <code>! texto</code> (alerta vermelho), <code>i texto</code> (informação), <code>e chave</code> (texto pronto para copiar: e-mail ou TCAF) e os passos
     <code>- passo</code>, <code>-- subpasso</code>, <code>--- sub-subpasso</code>.
     No fim do passo: <code>@baixada</code> / <code>@outraUF</code> / <code>@anexoV</code> (só nessa condição),
     <code>@conf</code> (conferência, em amarelo), <code>@libera</code> (marcar este passo libera a espera), <code>@opcional</code> (ganha o botão “não se aplica”). Uma linha <code>&gt; texto</code> logo abaixo de um passo vira uma dica em amarelo.
@@ -232,10 +237,11 @@ li.dica{list-style:none;font-size:13px;background:#fffbe6;border-left:3px solid 
    ROTEIRO PADRÃO (formato de texto — também é o do editor)
    ============================================================ */
 const FONTE_PADRAO = `
-# 0 | Verificar o cadastro do contribuinte (CNPJ) | sistema=Cartão CNPJ | campos=nome,cnpj,dataInicioAtividade@baixada,dataEncerramento@baixada
+# 0 | Verificar o cadastro do contribuinte (CNPJ) | sistema=Cartão CNPJ | campos=nome,cnpj,cnpjBasico,cnae,dataInicioAtividade@baixada,dataEncerramento@baixada
 ! Antes de tudo: empresa BAIXADA muda o AINF (etapa 13) e matriz em OUTRA UF exige 10 dias de espera depois de abrir a ação fiscal. Responda as duas perguntas no topo da página.
 i Para trabalhar você precisa de: pacote Office instalado (validação automática), certificado digital, o plugin de e-mail (Mailsuite) e acesso ao GSN, ao GFT, ao GRP, ao NFe-cidades, ao Portal Apura e ao Simples Nacional (Entes Federados).
 - Consultar a situação cadastral do CNPJ (cartão CNPJ)
+> Anote acima o CNAE principal: ele ajuda a achar o anexo correto na apuração (etapa 9).
 - Responder no topo: a empresa está baixada? (Sim / Não)
 - Responder no topo: a matriz (CNPJ) é de outra UF? (Simples Nacional/MEI: tratar como matriz)
 - Se baixada: anotar a data de início e a de encerramento da atividade (cartão CNPJ) @baixada
@@ -252,10 +258,12 @@ i Obs.: Essa etapa deve prevalecer sobre as seguintes e influenciará na abertur
 -- Dentro do contribuinte/processo específico: Apuração > Abrir apuração na calculadora > Importar Dossiê Fiscal > Analisar e preencher informações, se necessário (exemplo: marcar “Dolo/fraude/simulação no caso”) > Estou ciente - prosseguir
 > Anote no campo acima a decadência mais próxima que o Portal mostrar: a página avisa quando ela estiver perto.
 
-# 2 | Analisar a materialidade | sistema=GSN + NFe-cidades (ou Portal Apura) | campos=periodoInicio,periodoFim
+# 2 | Analisar a materialidade | sistema=GSN + NFe-cidades (ou Portal Apura) | campos=periodoInicio,periodoFim,numNotificacao,dataCienciaNotificacao
 i Obs.: Essa etapa deve prevalecer sobre as seguintes e influenciará na abertura ou não da ação fiscal.
 - Verificar a notificação prévia realizada no DTE-SN, através do GSN.
-> GSN > Movimentação > Contribuinte > DTE-SN > aba “Notificação”.
+> GSN > Movimentação > Contribuinte > DTE-SN > aba “Notificação”. Anote acima o nº da notificação (monitoramento fiscal) e a data de ciência do contribuinte: os dois entram no texto do TCAF.
+- Salvar a notificação prévia (PDF) na pasta do contribuinte: depois fica fácil consultar quais meses estão divergentes @conf
+> Na linha da notificação, use o ícone de imprimir.
 - Verificar NFSe emitidas em todos os PAs fiscalizados, através do NFe-cidades.
 > NFe-cidades > Consulta completa do contribuinte > CPF/CNPJ > Pesquisar > aba “Notas/Escriturações” > Data: {{$periodoIniDia}} até {{$periodoFimDia}} > Papel: Prestador > Situação: Ativa > Pesquisar Notas.
 > Também dá pelo Portal Apura: cofre (suas credenciais) > NFS-e.
@@ -359,18 +367,20 @@ i Enquanto o prazo não terminar, as etapas seguintes ficam TRAVADAS (dá para l
 - Criar uma pasta específica para cada sujeito de ação fiscal contendo os seguintes arquivos: XML do PGDAS-D e Calculadora_AINF4.
 ! A pasta específica criada não pode ser "pasta compartilhada" (OneDrive, Dropbox, Google Drive, etc).
 
-# 9 | Realizar a apuração na calculadora | sistema=Portal Apura
+# 9 | Realizar a apuração na calculadora | sistema=Portal Apura | campos=cnae,infracao
 i Caso 1: o contribuinte não declarou nada na PGDAS, mas emitiu notas → lançar o valor das notas em cada linha zerada, classificar como DBC, multa 100%.
 i Caso 2: declarou um valor menor que o das notas → deixar o valor declarado como RDM e criar outra linha com a diferença (notas − PGDAS) como DBC, multa 100%.
 i Caso 3: declarou tudo como venda de mercadoria (ou parecido), mas há notas → deixar a receita da PGDAS como RDM e lançar o valor das notas como DBC, sem fazer a diferença.
 - Preencher o “Resumo do procedimento de fiscalização” no Portal Apura: Nº do processo (GRP) {{$processoGRP}} e Ordem de Serviço (GFT) {{$os}}
 - Verificar anexo de enquadramento do CNAE e item da lista de serviços (ISS).
+> CNAE do contribuinte: {{$cnae}}
 - Verificar se existem retenções nas NFe emitidas.
 - Enquadrar DBCs e/ou SIRs no código de atividade específico para o SN.
 - Dentro do contribuinte/processo específico: Apuração > Abrir Calculadora AINF > Criar apuração para Processo nº ... > Importar PGDAS-D
 > Selecionar o XML da PGDAS-D baixado na etapa 8.
 - Incluir DBCs e/ou SIRs na calculadora do Portal Apura.
 - Salvar e Calcular
+- Marcar acima o que a apuração encontrou: DBC, SIR ou os dois (vai para o texto do TCAF)
 - A apuração constatou Anexo V (fator R)? Responder no topo da página (Sim / Não)
 
 # 9A | Termo de intimação (10 dias): folha de pagamento — Anexo V / fator R | cond=anexoV | espera=dataCienciaIntimacao:10 | sistema=GFT · seu usuário + e-mail + GRP | campos=dataCienciaIntimacao
@@ -402,9 +412,12 @@ i Obs.: O arquivo gerado após o procedimento terá o nome identificado por “w
 - Após apuração e validação: Calcular&Gerar AINF > AINF XML
 > Aba “Resultado” > “Baixar AINF XML”. Salve na pasta do contribuinte.
 
-# 12 | Gerar o TCAF (Relatório Fiscal) no GFT | sistema=GFT · seu usuário
+# 12 | Gerar o TCAF (Relatório Fiscal) no GFT | sistema=GFT · seu usuário | campos=infracao,numNotificacao,dataCienciaNotificacao,numAcaoFiscal
 i Obs.: Essa etapa é necessária à realização da seguinte, uma vez que o TCAF será anexado ao AINF gerado no Portal do Simples Nacional (Entes Federados).
+e tcaf
 - Fiscalização > Termo de conclusão > + Novo
+- Colar no termo o texto do TCAF pronto (botão “Copiar texto” acima) e conferir
+> Se o quadro mostrar algo em vermelho, falta preencher esse dado acima antes de copiar.
 > Salve o PDF do TCAF na pasta do contribuinte: ele é anexado ao AINF (etapa 13).
 
 # 13 | Gerar o AINF "oficial" no Portal do Simples Nacional (Entes Federados) | sistema=Simples Nacional (AINF 4.0) | depende=10,11,12 | exigeBaixada | campos=numAINF,dataCienciaTIAF
@@ -465,12 +478,17 @@ i Obs.: O processo constará do menu "Arquivados" no servidor fiscal em questão
 const CAMPOS = {
   nome:{r:'Nome / razão social do contribuinte'},
   cnpj:{r:'CNPJ',t:'cnpj'},
+  cnpjBasico:{r:'CNPJ básico (8 primeiros dígitos, antes do 0001)',t:'cnpjb'},
+  cnae:{r:'CNAE principal do contribuinte'},
   inscMunicipal:{r:'Inscrição municipal'},
   email:{r:'E-mail do contribuinte'},
   socios:{r:'Sócios / representantes',t:'lista'},
   periodoInicio:{r:'Período fiscalizado: de (mm/aaaa)',t:'mes'},
   periodoFim:{r:'Período fiscalizado: até (mm/aaaa)',t:'mes'},
   dataDecadencia:{r:'Decadência mais próxima (Portal Apura)',t:'data'},
+  numNotificacao:{r:'Nº da notificação prévia (monitoramento fiscal)'},
+  dataCienciaNotificacao:{r:'Ciência da notificação prévia pelo contribuinte',t:'data'},
+  infracao:{r:'O que a apuração encontrou (para o TCAF)',t:'opcoes',op:[['DBC','DBC (diferença de base de cálculo)'],['SIR','SIR (segregação incorreta de receitas)'],['DBC e SIR','DBC e SIR (os dois)']]},
   os:{r:'Nº da OS'},
   dataCienciaOS:{r:'Data da entrega da OS (data ciente, no GFT)',t:'data'},
   dataFimFiscalizacao:{r:'Fim do prazo da fiscalização',t:'data'},
@@ -493,7 +511,7 @@ const ROT_COND = {
   anexoV:{r:'Anexo V (fator R)?',tag:'ANEXO V'}
 };
 const CHAVE = 'assistenteFiscal.v1';
-const ROTEIRO_VERSAO = 4; // sobe a cada mudança no roteiro padrão; processos com roteiro não editado são atualizados sozinhos
+const ROTEIRO_VERSAO = 5; // sobe a cada mudança no roteiro padrão; processos com roteiro não editado são atualizados sozinhos
 
 /* ============================================================
    Utilitários
@@ -625,7 +643,15 @@ Ressaltamos que, conforme a Lei Complementar nº 203/2022, as comunicações ofi
 
 Para o acompanhamento do processo, o sujeito passivo deverá efetuar cadastro no Portal do Cidadão.`},
   intimacao:{titulo:'E-mail do Termo de Intimação (folha de pagamento — Anexo V)',assunto:'Termo de Intimação — OS nº $os (PAT nº $processoGRP)',corpo:''},
-  ainf:{titulo:'E-mail do AINF completo, TCAF e TC-CONT',assunto:'Auto de Infração — OS nº $os (PAT nº $processoGRP)',corpo:''}
+  ainf:{titulo:'E-mail do AINF completo, TCAF e TC-CONT',assunto:'Auto de Infração — OS nº $os (PAT nº $processoGRP)',corpo:''},
+  tcaf:{titulo:'Texto do TCAF (Termo de Conclusão)',semAssunto:true,assunto:'',corpo:
+`Nesta data, damos por concluída a ação fiscal realizada junto ao sujeito passivo acima identificado sem prejuízo do disposto no art. 149 da Lei nº 5.172, de 25 de outubro de 1966 (Código Tributário Nacional - CTN), não implicando na homologação prevista no art. 150 da mencionada norma federal, e não abrangendo outras irregularidades porventura existentes ou relacionadas. Nesse sentido, relatamos o que se segue abaixo quanto aos fatos observados e as providências adotadas:
+i. O presente trabalho fiscal é concernente à verificação do cumprimento das obrigações tributárias relativas aos tributos abrangidos pelo regime tributário do Simples Nacional (Regime Especial Unificado de Arrecadação de Tributos e Contribuições devidos pelas Microempresas e Empresas de Pequeno Porte), previsto na Lei Complementar nº 123, de 14 de dezembro de 2006.
+ii. Para que se procedesse à verificação fiscal, foram analisadas as Notas Fiscais de Serviço Eletrônicas (NFS-e) emitidas ao longo do período fiscalizado. Nessa perspectiva, esta auditoria fiscal detectou divergências quanto aos valores de receita bruta declarada por meio do Programa Gerador do Documento de Arrecadação do Simples Nacional Declaratório (PGDAS-D) e o montante de NFS-e emitidas junto ao sistema municipal em questão.
+iii. Ato contínuo, no dia $dataCienciaNotificacao, o sujeito passivo teve ciência da Notificação Prévia nº $numNotificacao, encaminhada através do Domicílio Tributário Eletrônico do Simples Nacional (DTE-SN), oportunizando a sua autorregularização. Uma vez não exercido o direito, esta auditoria fiscal procedeu à abertura e ao registro da ação fiscal, designada pela OS supramencionada, também no ambiente eletrônico do Simples Nacional (ação fiscal nº $numAcaoFiscal).
+iv. No âmbito desta ação fiscal, foram identificadas $infracoes em períodos de apuração (PA) abrangidos pela ação fiscal - conforme detalhamento constante do AINF.
+v. Uma vez determinado o imposto a recolher, a este foram aplicados juros de mora, multa de mora e correção monetária, atualizando-o até a presente data, em consonância com os arts. 21, §3º e 35 da LC 123/2006. Outrossim, esta auditoria fiscal entendeu pela aplicabilidade de multa de ofício de 100%, nos termos do inciso VI do art. 44 da Lei nº 9.430, de 27 de dezembro de 1996, combinado com o art. 35 da Lei Complementar nº 123, de 14 de dezembro de 2006 e os arts. 93, inciso I, 94, inciso II, e 96, inciso II, da Resolução CGSN nº 140, de 22 de maio de 2018.
+vi. Por fim, elucida-se que o sujeito passivo deve proceder à retificação do PGDAS-D nos períodos abrangidos pela ação fiscal, informando a opção “Lançamento de Ofício” quanto aos tributos incluídos no regime do Simples Nacional, a fim de evitar a cobrança em duplicidade e de adimplir com a obrigação acessória exigível, resguardando-se da aplicação das penalidades cabíveis de acordo com a legislação de regência.`}
 }; }
 function normalizar(p){
   const novoRot=!p.roteiro;
@@ -728,6 +754,7 @@ function textoPrazo(i){
 
 const isoHoje=()=>{ const d=hoje(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const fmtMes=v=>{ if(!v) return ''; const [a,m]=v.split('-'); return m+'/'+a; };
+const mascaraBasico=d=>d.slice(0,2)+(d.length>2?'.'+d.slice(2,5):'')+(d.length>5?'.'+d.slice(5,8):'');
 const fmtCpf=d=>d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,'$1.$2.$3-$4');
 function cnpjValido(d){
   if(!/^\d{14}$/.test(d)||/^(\d)\1+$/.test(d)) return false;
@@ -741,7 +768,8 @@ function cpfValido(d){
 }
 // dados calculados a partir dos que você digitou (usados como $chave nos botões de copiar)
 const DERIVADOS={
-  cnpjBasico:p=>{ const d=(p.dados.cnpj||'').replace(/\D/g,''); return d.length>=8?d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8):''; },
+  cnpjBasico:p=>{ if((p.dados.cnpjBasico||'').trim()) return p.dados.cnpjBasico; const d=(p.dados.cnpj||'').replace(/\D/g,''); return d.length>=8?mascaraBasico(d):''; },
+  infracoes:p=>({'DBC':'diferenças de base de cálculo (DBC)','SIR':'segregações incorretas de receitas (SIR)','DBC e SIR':'diferenças de base de cálculo (DBC) e segregações incorretas de receitas (SIR)'})[p.dados.infracao]||'',
   periodoIniDia:p=>p.dados.periodoInicio?'01/'+fmtMes(p.dados.periodoInicio):'',
   periodoFimDia:p=>{ const v=p.dados.periodoFim; if(!v) return ''; const [a,m]=v.split('-').map(Number); return fmtData(new Date(a,m,0)); },
   periodoIniMes:p=>fmtMes(p.dados.periodoInicio||''),
@@ -751,7 +779,7 @@ const DERIVADOS={
   cpfContato:p=>{ const s=p.socios.find(x=>(x.cpf||'').trim()); return s?s.cpf.replace(/\D/g,''):''; }, // nome usado nos roteiros antigos
   socio:p=>{ const s=p.socios.find(x=>(x.nome||'').trim()); return s?s.nome:''; }
 };
-const ROT_DERIV={cnpjBasico:'CNPJ básico',periodoIniDia:'início do período',periodoFimDia:'fim do período',periodoIniMes:'início do período',periodoFimMes:'fim do período',anos:'ano-calendário',hoje:'hoje',cpfContato:'CPF do sócio/representante',socio:'sócio/representante'};
+const ROT_DERIV={cnpjBasico:'CNPJ básico',periodoIniDia:'início do período',periodoFimDia:'fim do período',periodoIniMes:'início do período',periodoFimMes:'fim do período',anos:'ano-calendário',hoje:'hoje',cpfContato:'CPF do sócio/representante',socio:'sócio/representante',infracoes:'DBC, SIR ou os dois (marque na etapa 9)'};
 // prazo da fiscalização (90 dias da data ciente da OS, ou a data que você anotar) e decadência
 function prazosGerais(p,c){
   const L=[], encerrado=t=>c.infos.some(i=>(i.e.encerra||[]).includes(t)&&i.concl);
@@ -784,7 +812,7 @@ function fmtTexto(t){
   });
   return out+esc(t.slice(ult));
 }
-function refreshChips(){ document.querySelectorAll('.chip[data-tpl]').forEach(b=>{ b.textContent=resolver(b.dataset.tpl); }); }
+function refreshChips(){ document.querySelectorAll('.chip[data-tpl]').forEach(b=>{ b.textContent=resolver(b.dataset.tpl); }); refreshPrevias(); }
 function valorCampo(k){ const v=(cur().dados[k]||'').trim(), t=CAMPOS[k]&&CAMPOS[k].t; return !v?v:t==='data'?fmtData(v):t==='mes'?fmtMes(v):v; }
 function copiar(txt,rot){
   const ok=()=>aviso('Copiado: '+(rot||txt).slice(0,70));
@@ -807,9 +835,10 @@ function htmlCampo(chave,req){
   const mostra=isData?((!v&&rascunhoData[rk]!==undefined)?rascunhoData[rk]:(d.t==='mes'?fmtMes(v):fmtData(v))):v;
   const dig=v.replace(/\D/g,'');
   const inval=(isData&&!v&&mostra.length===tam)||(d.t==='cnpj'&&dig.length===14&&!cnpjValido(dig));
-  const extra=d.t==='cnpj'?`<button type="button" class="mini" data-act="copy-num" data-k="${chave}" title="Copiar só os números">Só nº</button><button type="button" class="mini" data-act="copy-basico" title="Copiar o CNPJ básico (8 primeiros dígitos)">Básico</button>`
+  if(d.t==='opcoes') return `<div class="campo${req&&!v?' falta':''}"><label>${esc(d.r)}</label><div class="lin"><select data-campo="${chave}"><option value="">— escolha —</option>${d.op.map(([val,rot])=>`<option value="${esc(val)}"${v===val?' selected':''}>${esc(rot)}</option>`).join('')}</select></div></div>`;
+  const extra=(d.t==='cnpj'||d.t==='cnpjb')?`<button type="button" class="mini" data-act="copy-num" data-k="${chave}" title="Copiar só os números">Só nº</button>`
     :d.t==='data'?`<button type="button" class="mini" data-act="hoje" data-k="${chave}" title="Preencher com a data de hoje">Hoje</button>`:'';
-  const ph=d.t==='mes'?'placeholder="mm/aaaa" maxlength="7" inputmode="numeric" ':d.t==='data'?'placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" ':'';
+  const ph=d.t==='cnpjb'?'placeholder="00.000.000" maxlength="10" inputmode="numeric" ':d.t==='mes'?'placeholder="mm/aaaa" maxlength="7" inputmode="numeric" ':d.t==='data'?'placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" ':'';
   const nota=chave==='dataFimFiscalizacao'&&!v&&p.dados.dataCienciaOS?`<div class="peq">Vazio: vale a data ciente da OS + 90 dias (${fmtData(addDias(p.dados.dataCienciaOS,90))}).</div>`:'';
   return `<div class="campo${req&&!v.trim()?' falta':''}"><label>${esc(d.r)}${req?' <b class="obrig">(obrigatório para concluir)</b>':''}</label>
     <div class="lin"><input type="text" ${ph}class="${inval?'invalida':''}" data-campo="${chave}" value="${esc(mostra)}" autocomplete="off">
@@ -831,15 +860,18 @@ function htmlSocChips(){
   return L.length?L.map(s=>`<button type="button" class="chip" data-act="copy-socio" data-id="${esc(s.id)}" data-f="cpfnum" title="Copiar o CPF só com números">${esc(s.cpf)}${s.nome?' — '+esc(s.nome):''}</button>`).join(' '):'<em>(cadastre o CPF do sócio/representante na etapa 4)</em>';
 }
 function refreshSocChips(){ document.querySelectorAll('.socchips').forEach(el=>{ el.innerHTML=htmlSocChips(); }); }
+const htmlPrevia=t=>esc(t).replace(/‹[^›]*›/g,m=>`<mark class="faltadado">${m}</mark>`);
+function refreshPrevias(){ document.querySelectorAll('[data-previa]').forEach(el=>{ const m=S.emails[el.dataset.previa]; if(m) el.innerHTML=htmlPrevia(resolver(m.corpo||'')); }); }
 function htmlEmail(k){
   S.emails[k]=S.emails[k]||{titulo:k,assunto:'',corpo:''};
-  const m=S.emails[k];
-  return `<div class="email"><div><b>✉ ${esc(m.titulo)}</b> <span class="peq">— modelo único, vale para todos os processos (pode editar aqui mesmo)</span></div>
-    <input class="ass" data-email="${esc(k)}" data-f="assunto" value="${esc(m.assunto)}" placeholder="Assunto (opcional)">
-    <textarea data-email="${esc(k)}" data-f="corpo" placeholder="Cole aqui o seu modelo de e-mail…">${esc(m.corpo)}</textarea>
-    <div class="lin"><button type="button" class="btn prim" data-act="copy-email" data-k="${esc(k)}" data-f="corpo">Copiar e-mail</button>
-    <button type="button" class="btn" data-act="copy-email" data-k="${esc(k)}" data-f="assunto">Copiar assunto</button>
-    <span class="peq">Dica: $nome, $cnpj, $os… são preenchidos com os dados do processo na hora de copiar.</span></div></div>`;
+  const m=S.emails[k], txt=!!m.semAssunto; // TCAF: texto sem assunto
+  return `<div class="email"><div><b>${txt?'📄':'✉'} ${esc(m.titulo)}</b> <span class="peq">— modelo único, vale para todos os processos (pode editar aqui mesmo)</span></div>
+    ${txt?'':`<input class="ass" data-email="${esc(k)}" data-f="assunto" value="${esc(m.assunto)}" placeholder="Assunto (opcional)">`}
+    <textarea data-email="${esc(k)}" data-f="corpo" placeholder="Cole aqui o seu modelo…">${esc(m.corpo)}</textarea>
+    <details class="previa"${txt?' open':''}><summary>Ver como fica com os dados deste processo</summary><div class="prev" data-previa="${esc(k)}">${htmlPrevia(resolver(m.corpo||''))}</div></details>
+    <div class="lin"><button type="button" class="btn prim" data-act="copy-email" data-k="${esc(k)}" data-f="corpo">${txt?'Copiar texto':'Copiar e-mail'}</button>
+    ${txt?'':`<button type="button" class="btn" data-act="copy-email" data-k="${esc(k)}" data-f="assunto">Copiar assunto</button>`}
+    <span class="peq">Dica: $nome, $cnpj, $os… são trocados pelos dados do processo; o que estiver em vermelho na prévia ainda falta preencher.</span></div></div>`;
 }
 function htmlPassos(p,info){
   const e=info.e, cont=[0,0,0,0,0]; let h='<ul class="passos">';
@@ -1104,7 +1136,7 @@ const acoes = {
   'del-socio':el=>{ const p=cur(), s=p.socios.find(x=>x.id===el.dataset.id); if(s&&(s.nome||s.cpf)&&!confirm('Remover o sócio “'+(s.nome||s.cpf)+'”?')) return; p.socios=p.socios.filter(x=>x.id!==el.dataset.id); log('Sócio removido'); salvar(); render(); },
   'copy-socio':el=>{ const s=cur().socios.find(x=>x.id===el.dataset.id), f=el.dataset.f; let v=s&&(s[f==='cpfnum'?'cpf':f]||'').trim(); if(!v) return aviso('Campo vazio.','amar'); if(f==='cpfnum') v=v.replace(/\D/g,''); copiar(v,(s.nome?s.nome+': ':'')+v); },
   'copy-email':el=>{ const m=S.emails[el.dataset.k]; const t=resolver((m&&m[el.dataset.f])||''); if(!t.trim()) return aviso(el.dataset.f==='assunto'?'O assunto está vazio.':'O modelo está vazio.','amar');
-    if(t.includes('‹')) aviso('Há dados do processo ainda não preenchidos neste texto.','amar'); copiar(t,el.dataset.f==='assunto'?t:'e-mail copiado ('+t.length+' caracteres)'); },
+    if(t.includes('‹')) aviso('Há dados do processo ainda não preenchidos neste texto.','amar'); copiar(t,el.dataset.f==='assunto'?t:(m.semAssunto?'texto do TCAF':'e-mail')+' ('+t.length+' caracteres)'); },
   'atualizar-roteiro':()=>{
     const p=cur(), modeloAntigo=!!S.modelo&&S.modelo.every(e=>!e.sistema);
     if(!confirm('Trocar o roteiro deste processo pelo roteiro padrão atual?\n\nO que você já marcou continua marcado. Se você tinha mudado o texto do roteiro neste processo, essas mudanças são substituídas.'+(modeloAntigo?'\n\nO modelo salvo para os próximos processos também é antigo e passa a ser o padrão atual.':''))) return;
@@ -1115,7 +1147,6 @@ const acoes = {
   'manter-roteiro':()=>{ cur().manterRoteiro=ROTEIRO_VERSAO; salvar(); render(); },
   'passo-na':el=>{ const p=cur(), pid=el.dataset.pid; if(p.naPasso[pid]) delete p.naPasso[pid]; else p.naPasso[pid]=agora(); p.abertas[el.dataset.eid]=true; salvar(); render(); },
   'hoje':el=>{ const p=cur(), k=el.dataset.k; p.dados[k]=isoHoje(); delete rascunhoData[p.id+'|'+k]; salvar(); render(); aviso(CAMPOS[k].r+': '+fmtData(p.dados[k])); },
-  'copy-basico':()=>{ const v=DERIVADOS.cnpjBasico(cur()); if(!v) return aviso('Preencha o CNPJ primeiro.','amar'); copiar(v,'CNPJ básico '+v); },
   'socio-mei':()=>{ const p=cur(), cpf=cpfDoNomeMei(p); if(!cpf) return;
     const nome=(p.dados.nome||'').replace(/\s*\d{11}\s*$/,'').replace(/^\d{2}\.\d{3}\.\d{3}\s+/,'').trim();
     let s=p.socios.find(x=>!x.nome&&!x.cpf); if(!s){ s={id:uid(),nome:'',cpf:''}; p.socios.push(s); }
@@ -1304,12 +1335,15 @@ document.addEventListener('input',ev=>{
   const el=ev.target, p=cur();
   if(el.dataset.campo){ const k=el.dataset.campo;
     if(CAMPOS[k].t==='data'||CAMPOS[k].t==='mes'){ campoData(el,k,p); return; }
-    p.dados[k]=el.value; salvar(); refreshChips();
+    if(CAMPOS[k].t==='cnpjb'){ el.value=mascaraBasico(el.value.replace(/\D/g,'').slice(0,8)); }
+    p.dados[k]=el.value;
+    if(k==='cnpj'){ const dg=el.value.replace(/\D/g,''); if(dg.length>=8){ p.dados.cnpjBasico=mascaraBasico(dg); document.querySelectorAll('[data-campo="cnpjBasico"]').forEach(o=>{ o.value=p.dados.cnpjBasico; }); } } // o CNPJ básico acompanha o CNPJ
+    salvar(); refreshChips();
     document.querySelectorAll(`[data-campo="${k}"]`).forEach(o=>{ if(o!==el) o.value=el.value; }); }
   else if(el.dataset.draft!==undefined){ (drafts[el.dataset.draft]=drafts[el.dataset.draft]||{texto:'',lemb:false}).texto=el.value; }
   else if(el.dataset.geral!==undefined){ p.notaGeral=el.value; salvar(); }
   else if(el.dataset.soc){ const s=p.socios.find(y=>y.id===el.dataset.soc); if(s){ s[el.dataset.f]=el.value; salvar(); refreshSocChips(); } }
-  else if(el.dataset.email){ const m=S.emails[el.dataset.email]; if(m){ m[el.dataset.f]=el.value; salvar(); } }
+  else if(el.dataset.email){ const m=S.emails[el.dataset.email]; if(m){ m[el.dataset.f]=el.value; salvar(); refreshPrevias(); } }
   else if(el.dataset.ex){ const x=p.extras.find(y=>y.id===el.dataset.ex); if(x){ x[el.dataset.f]=el.value; salvar(); } }
   else if(el.dataset.gl){ const x=S.globais.find(y=>y.id===el.dataset.gl); if(x){ x[el.dataset.f]=el.value; salvar(); } }
 });
