@@ -1,0 +1,3 @@
+# JSON dos processos exportados pelo assistente: têm CNPJ e dados sigilosos. Não versionar.
+processo_*.json
+assistente-fiscal_todos_*.json

@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Assistente Fiscal</title>
+<style>
+:root{
+  --verm:#c62828;--verm-bg:#fdecea;
+  --roxo:#6a1b9a;--roxo-bg:#f3e5f5;
+  --amar:#f9a825;--amar-bg:#fff8e1;--amar-tx:#5d4300;
+  --verde:#2e7d32;--verde-bg:#e8f5e9;
+  --azul:#1565c0;--azul-bg:#e3f2fd;
+  --lara:#e65100;--lara-bg:#fff3e0;
+  --cinza:#607d8b;--cinza-bg:#eceff1;
+  --tx:#1d2733;--fundo:#f4f6f9;--card:#fff;--borda:#d5dbe3;
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--fundo);color:var(--tx)}
+button{font:inherit;cursor:pointer}
+input,textarea,select{font:inherit}
+#fixo{position:sticky;top:0;z-index:20;background:var(--fundo);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+@media (max-height:640px),(max-width:700px){#fixo{position:static}}
+header{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:8px 16px;background:#1b2b44;color:#fff}
+header h1{font-size:18px;margin:0 8px 0 0}
+header select{min-width:220px;max-width:100%;padding:4px 6px;border-radius:6px;border:1px solid #496590}
+.botoes{display:flex;flex-wrap:wrap;gap:6px}
+.btn{background:#fff;color:var(--tx);border:1px solid #9aa7b8;border-radius:6px;padding:4px 10px}
+.btn:hover{background:#eef2f7}
+header .btn{background:#2c4468;color:#fff;border-color:#496590}
+header .btn:hover{background:#38557f}
+.btn.perigo{color:var(--verm)}
+.btn.prim{background:var(--azul);color:#fff;border-color:var(--azul)}
+#barra{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 16px;background:#fff;border-bottom:1px solid var(--borda)}
+.prog{flex:1 1 240px;min-width:200px}
+.prog .trilho{height:14px;background:var(--cinza-bg);border-radius:7px;overflow:hidden;border:1px solid var(--borda)}
+.prog .enche{height:100%;background:var(--verde);transition:width .3s}
+.prog small{color:#51606f}
+.cond{display:flex;align-items:center;gap:6px;border:2px solid var(--cinza);border-radius:8px;padding:3px 8px;background:#fff}
+.cond .cl{font-weight:700}
+.cond button{border:1px solid #9aa7b8;border-radius:6px;background:#fff;padding:1px 9px;color:var(--tx)}
+.cond button.on{background:#1b2b44;color:#fff;border-color:#1b2b44}
+.cond.s-nv.c-baixada,.cond.s-nv.c-outraUF{border:2px dashed var(--verm);background:var(--verm-bg)}
+.cond.s-sim.c-baixada{background:var(--roxo);border-color:var(--roxo);color:#fff}
+.cond.s-sim.c-outraUF,.cond.s-sim.c-anexoV{background:var(--lara);border-color:var(--lara);color:#fff}
+.cond.s-nao{border-color:var(--verde);background:var(--verde-bg)}
+.cond.s-nv.c-anexoV{border-style:dashed}
+#status{font-size:12px;color:#51606f;flex:1 1 100%}
+#status .alerta{color:var(--verm);font-weight:700}
+.faixa{padding:7px 16px;font-weight:700;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.faixa.verm{background:var(--verm);color:#fff}
+.faixa.roxo{background:var(--roxo);color:#fff}
+.faixa.lara{background:var(--lara);color:#fff}
+.faixa.amar{background:var(--amar);color:var(--amar-tx)}
+.faixa.verde{background:var(--verde);color:#fff}
+.faixa.pisca{animation:piscar 1.6s ease-in-out infinite}
+@keyframes piscar{50%{background:#ff5252}}
+@media (prefers-reduced-motion:reduce){.faixa.pisca{animation:none}}
+.faixa .bf{background:#fff;color:var(--tx);border:0;border-radius:6px;padding:2px 10px;font-weight:600}
+.faixa a{color:inherit}
+#outros{padding:6px 16px;background:var(--lara-bg);border-bottom:1px solid #ffcc80;font-size:13px}
+#outros b{color:var(--lara)}
+#outros button{border:0;background:none;color:var(--azul);text-decoration:underline;padding:0 4px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;padding:16px;max-width:1560px;margin:0 auto}
+@media (max-width:1000px){main{grid-template-columns:1fr;padding:10px}}
+aside{position:sticky;top:calc(var(--hfixo,130px) + 8px);align-self:start;max-height:calc(100vh - var(--hfixo,130px) - 24px);overflow:auto;padding-right:2px}
+@media (max-width:1000px){aside{position:static;max-height:none}}
+.etapa{background:var(--card);border:1px solid var(--borda);border-left:6px solid var(--cinza);border-radius:8px;margin-bottom:10px;scroll-margin-top:calc(var(--hfixo,130px) + 8px)}
+.etapa.c-baixada{border-left-color:var(--roxo)}
+.etapa.c-outraUF,.etapa.c-anexoV{border-left-color:var(--lara)}
+.etapa.prox{border-left-color:var(--amar);box-shadow:0 0 0 2px var(--amar)}
+.etapa.concl{border-left-color:var(--verde);background:#fbfefb}
+.etapa.trav{border-left-color:#90a4ae;background:#f1f3f5}
+.etapa.na{opacity:.6;border-left-color:#90a4ae}
+.etapa.dormente{border-style:dashed;opacity:.75}
+.cab{display:flex;gap:10px;align-items:center;padding:9px 12px;cursor:pointer;user-select:none}
+.cab .num{flex:none;min-width:34px;height:34px;padding:0 6px;border-radius:17px;background:var(--azul);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+.concl .cab .num{background:var(--verde)}
+.prox .cab .num{background:var(--amar);color:var(--amar-tx)}
+.trav .cab .num,.na .cab .num{background:#90a4ae}
+.c-baixada .cab .num{background:var(--roxo)}
+.c-outraUF:not(.concl) .cab .num,.c-anexoV:not(.concl) .cab .num{background:var(--lara)}
+.cab .tit{flex:1;font-weight:700}
+.cab .cont{color:#51606f;font-size:13px;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;font-weight:800;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle;color:#fff;background:var(--cinza)}
+.t-baixada{background:var(--roxo)}.t-outraUF,.t-anexoV,.t-prazo{background:var(--lara)}
+.t-prox{background:var(--amar);color:var(--amar-tx)}.t-ok{background:var(--verde)}.t-trav{background:#546e7a}
+.corpo{padding:4px 14px 14px 14px;border-top:1px solid var(--borda)}
+.obs{margin:8px 0;padding:7px 10px;border-radius:6px;border-left:4px solid var(--azul);background:var(--azul-bg)}
+.obs.alerta{border-left-color:var(--verm);background:var(--verm-bg);color:#7f1d1d;font-weight:700}
+.obs.alerta::before{content:"⚠ ATENÇÃO: "}
+.bloqueio{margin:8px 0;padding:10px;border-radius:6px;background:#eceff1;border:2px solid #78909c;font-weight:600}
+.prazo{margin:8px 0;padding:10px 12px;border-radius:8px;background:var(--lara-bg);border:2px solid var(--lara)}
+.prazo.ok{background:var(--verde-bg);border-color:var(--verde)}
+.prazo .grande{font-size:20px;font-weight:800;color:var(--lara)}
+.prazo.ok .grande{color:var(--verde)}
+.campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin:10px 0;padding:8px;background:var(--azul-bg);border-radius:8px;border:1px solid #90caf9}
+.campo label{display:block;font-size:12px;font-weight:700;color:var(--azul)}
+.campo .lin{display:flex;gap:4px}
+.campo input{flex:1;min-width:0;padding:4px 6px;border:1px solid #90a4ae;border-radius:6px;background:#fff}
+.campo.falta input{border:2px solid var(--verm);background:var(--verm-bg)}
+.obrig{color:var(--verm)}
+.mini{border:1px solid #90a4ae;background:#fff;border-radius:6px;padding:0 7px;font-size:12px}
+.mini:hover{background:#eef2f7}
+ul.passos{list-style:none;margin:8px 0;padding:0}
+.passo,.grupo{padding:4px 6px;border-radius:6px;margin:1px 0}
+.passo label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.passo input{margin-top:3px;width:18px;height:18px;flex:none;cursor:pointer}
+.passo:hover{background:#f3f6fa}
+.passo.feito{background:var(--verde-bg)}
+.passo.feito .pt{color:#5f6b78;text-decoration:line-through}
+.passo.conf{background:var(--amar-bg);border-left:4px solid var(--amar)}
+.passo.conf.feito{background:var(--verde-bg);border-left-color:var(--verde)}
+.passo.cond-baixada,.grupo.cond-baixada{border-left:4px solid var(--roxo);background:var(--roxo-bg)}
+.passo.cond-outraUF,.passo.cond-anexoV{border-left:4px solid var(--lara)}
+.passo.dorm,.grupo.dorm{opacity:.55}
+.grupo{font-weight:700;color:#2d3b4d}
+.pn{color:#6b7785;font-size:12px;font-weight:700;margin-right:4px}
+.quando{margin-left:auto;font-size:11px;color:var(--verde);white-space:nowrap}
+.n1{margin-left:20px}.n2{margin-left:40px}.n3{margin-left:60px}.n4{margin-left:80px}
+@media (max-width:600px){.n1{margin-left:10px}.n2{margin-left:20px}.n3{margin-left:30px}.n4{margin-left:40px}}
+.chip{background:var(--azul-bg);color:var(--azul);border:1px solid #90caf9;border-radius:12px;padding:0 8px;cursor:copy;font-weight:600}
+.chip:hover{background:#bbdefb}
+.notas{margin-top:10px;border-top:1px dashed var(--borda);padding-top:8px}
+.nota{display:flex;gap:8px;align-items:flex-start;padding:4px 8px;border-radius:6px;background:#f6f8fa;margin:3px 0;font-size:14px}
+.nota.lemb{background:var(--amar-bg);border-left:4px solid var(--amar)}
+.nota.res{opacity:.55;text-decoration:line-through}
+.nota .qd{font-size:11px;color:#6b7785;white-space:nowrap}
+.nota .tx{flex:1;white-space:pre-wrap}
+.addnota textarea{width:100%;min-height:42px;padding:5px;border:1px solid #9aa7b8;border-radius:6px;resize:vertical}
+.addnota .lin{display:flex;gap:10px;align-items:center;margin-top:4px;font-size:13px}
+.rodape{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.card{background:var(--card);border:1px solid var(--borda);border-radius:8px;margin-bottom:12px}
+.card h2{margin:0;padding:8px 12px;font-size:14px;border-bottom:1px solid var(--borda);border-radius:8px 8px 0 0;background:var(--cinza-bg)}
+.card .cc{padding:8px 12px}
+.card.lembs h2{background:var(--amar);color:var(--amar-tx)}
+.card.dados h2{background:var(--azul);color:#fff}
+.card.dados .campo{margin-bottom:6px}
+.card.fixos h2{background:#37474f;color:#fff}
+.linha{display:grid;grid-template-columns:1fr 1.4fr auto auto;gap:4px;margin-bottom:4px}
+.linha input{min-width:0;padding:3px 5px;border:1px solid #9aa7b8;border-radius:6px}
+.card textarea{width:100%;min-height:90px;padding:6px;border:1px solid #9aa7b8;border-radius:6px;resize:vertical}
+.hist{font-size:12px;max-height:240px;overflow:auto}
+.hist div{padding:2px 0;border-bottom:1px solid #eef1f4}
+.hist time{color:#6b7785;margin-right:6px}
+details>summary{cursor:pointer;font-weight:700;padding:8px 12px}
+#aviso{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;max-width:92vw;display:flex;flex-direction:column;gap:6px;align-items:center}
+.toast{background:#263238;color:#fff;padding:8px 14px;border-radius:8px;box-shadow:0 3px 12px rgba(0,0,0,.35);font-weight:600}
+.toast.verm{background:var(--verm)}.toast.lara{background:var(--lara)}.toast.amar{background:var(--amar);color:var(--amar-tx)}
+dialog{width:min(900px,96vw);border:0;border-radius:10px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog textarea{width:100%;height:52vh;font:13px/1.4 ui-monospace,Consolas,monospace;padding:8px;border:1px solid #9aa7b8;border-radius:6px}
+dialog .ajuda{font-size:13px;background:var(--azul-bg);padding:8px 12px;border-radius:6px}
+dialog .ajuda code{background:#fff;padding:0 4px;border-radius:3px}
+#erroFonte{color:var(--verm);font-weight:700;white-space:pre-wrap}
+dialog menu{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:10px 0 0}
+</style>
+</head>
+<body>
+<div id="fixo">
+  <header>
+    <h1>Assistente Fiscal</h1>
+    <select id="selProc" title="Processo aberto"></select>
+    <div class="botoes">
+      <button class="btn" data-act="novo">＋ Novo processo</button>
+      <button class="btn" data-act="salvar-json">Salvar JSON</button>
+      <button class="btn" data-act="abrir-json">Abrir JSON</button>
+      <button class="btn" data-act="arquivo" id="btnArquivo" hidden>Salvar sempre em um arquivo…</button>
+      <button class="btn" data-act="salvar-todos">Salvar todos</button>
+      <button class="btn" data-act="editar-roteiro">Editar roteiro</button>
+      <button class="btn" data-act="excluir">Excluir processo</button>
+    </div>
+  </header>
+  <div id="barra"></div>
+  <div id="faixas"></div>
+  <div id="outros" hidden></div>
+</div>
+<main>
+  <section id="etapas"></section>
+  <aside id="lateral"></aside>
+</main>
+<div id="aviso"></div>
+<input type="file" id="arq" accept=".json,application/json" hidden>
+<dialog id="dlg">
+  <h2 style="margin-top:0">Editar roteiro</h2>
+  <div class="ajuda">
+    Uma etapa começa com <code># número | título</code> e pode ter opções separadas por <code>|</code>:
+    <code>cond=baixada</code> (ou <code>outraUF</code>, <code>anexoV</code>) mostra a etapa só nessa condição;
+    <code>espera=campo:dias</code> cria um prazo (trava as etapas seguintes);
+    <code>campos=os,processoGRP!</code> mostra campos de dados na etapa (<code>!</code> = obrigatório para concluir);
+    <code>depende=10,11</code> avisa se essas etapas não estiverem prontas; <code>exigeBaixada</code> pede confirmação se a situação da empresa não foi verificada.<br>
+    Depois vêm: <code>! texto</code> (alerta vermelho), <code>i texto</code> (informação) e os passos
+    <code>- passo</code>, <code>-- subpasso</code>, <code>--- sub-subpasso</code>.
+    No fim do passo: <code>@baixada</code> / <code>@outraUF</code> / <code>@anexoV</code> (só nessa condição),
+    <code>@conf</code> (conferência, em amarelo), <code>@libera</code> (marcar este passo libera a espera).
+    Em um passo, <code>{{texto}}</code> vira um botão de copiar e <code>$cnpj</code>, <code>$os</code> etc. puxam os seus dados.
+  </div>
+  <textarea id="fonte" spellcheck="false"></textarea>
+  <div id="erroFonte"></div>
+  <menu>
+    <button type="button" class="btn prim" data-act="aplicar-roteiro">Aplicar a este processo</button>
+    <button type="button" class="btn" data-act="aplicar-modelo">Aplicar e usar como modelo dos próximos processos</button>
+    <button type="button" class="btn" data-act="restaurar-roteiro">Restaurar o roteiro original (no editor)</button>
+    <button type="button" class="btn" data-act="fechar-roteiro">Fechar</button>
+  </menu>
+</dialog>
+
+<script>
+'use strict';
+
+/* ============================================================
+   ROTEIRO PADRÃO (formato de texto — também é o do editor)
+   ============================================================ */
+const FONTE_PADRAO = `
+# 0 | Verificar o cadastro do contribuinte (CNPJ) | campos=nome,cnpj,dataInicioAtividade@baixada,dataEncerramento@baixada
+! Antes de tudo: empresa BAIXADA muda o AINF (etapa 13) e matriz em OUTRA UF exige 10 dias de espera depois de abrir a ação fiscal. Responda as duas perguntas no topo da página.
+- Consultar a situação cadastral do CNPJ (cartão CNPJ)
+- Responder no topo: a empresa está baixada? (Sim / Não)
+- Responder no topo: a matriz (CNPJ) é de outra UF? (Simples Nacional/MEI: tratar como matriz)
+- Se baixada: anotar a data de início e a de encerramento da atividade (cartão CNPJ) @baixada
+
+# 1 | Analisar o prazo decadencial | campos=periodos
+i Obs.: Essa etapa deve prevalecer sobre as seguintes e influenciará na abertura ou não da ação fiscal.
+! O arquivo do Dossiê Fiscal deve estar na extensão do tipo .xls, .csv ou .xlsx
+- Gerar a planilha do Dossiê Fiscal no GSN:
+-- Movimentação > Contribuinte > Ano-calendário (trocar para o correspondente à ação fiscal) > Imprimir (formato Planilha Eletrônica XLS) > Dossiê Fiscal
+- Importar o Dossiê Fiscal no Portal do Auditor:
+-- Dentro do contribuinte/processo específico: Apuração > Abrir apuração na calculadora > Importar Dossiê Fiscal > Analisar e preencher informações, se necessário (exemplo: marcar “Dolo/fraude/simulação no caso”) > Estou ciente - prosseguir
+
+# 2 | Analisar a materialidade | campos=periodos
+i Obs.: Essa etapa deve prevalecer sobre as seguintes e influenciará na abertura ou não da ação fiscal.
+- Verificar a notificação prévia realizada no DTE-SN, através do GSN.
+- Verificar NFSe emitidas em todos os PAs fiscalizados, através do NFe-cidades.
+- Verificar divergências apontadas, e as porventura não identificadas pelo GSN (como por exemplo, não emissão de NFSe ou segregação incorreta de receitas).
+
+# 3 | Cadastrar o sujeito da ação fiscal e abrir a OS, através do login e senha Gerente/Diretor. | campos=inscMunicipal!,os
+! Não esquecer de preencher a inscrição municipal.
+- Cadastro Municipal > Contribuinte > + Novo
+- Fiscalização > Ordem de fiscalização > +Novo
+-- Classificação
+-- Categoria
+-- Nº do processo
+-- Procedimento
+-- Contribuinte > + (adicionar)
+-- Auditor > + (adicionar)
+
+# 4 | Incluir e-mail(s) e representante(s) do sujeito da ação fiscal no Cadastro Técnico Municipal (CTM), através do GRPweb. | campos=email,socio
+i Obs.: A cada movimentação do processo digital o sujeito da ação fiscal receberá uma notificação.
+- Contribuinte > Contato
+- Contribuinte > Representante (incluir sócio).
+
+# 5 | Gerar processo eletrônico no GRPweb | campos=processoGRP,os
+- Sistemas > Protocolos, Documentos e Fluxos (PDF) > Menu (☰) > Protocolos > Cadastros (Processos) > Novo:
+-- Tipo de Pessoa → Física ou Jurídica
+-- Contato/Solicitante → Preencher com nome do sujeito da ação fiscal: {{$nome}}
+-- Categorias de Protocolo → Deixar em branco.
+-- Classificação → {{Procedimento de fiscalização}}
+-- Assunto → {{Auditoria fiscal}}
+-- Exibe anexos? Sim
+-- Marcar como "SIGILOSO"
+-- Origem/Procurador → Mesmo de "Contato/Solicitante"
+-- Local de cadastro → {{Departamento de Protocolos Tributários Digitais}}
+-- Descrição → {{Procedimento de fiscalização OS nº $os}}
+-- Arquivos anexos → Anexar arquivo da OS (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
+-- Salvar (e anotar o nº do processo no campo acima)
+- Informar nº do processo no GFT:
+-- Fiscalização > Ordem de fiscalização > Pesquisar > Operações adicionais > Processo
+
+# 6 | Abrir TIAF no GFT (Publicenter), em seguida, notificar o sujeito da ação fiscal (via e-mail). | campos=numTIAF,dataTIAF,dataCienciaTIAF
+- Fiscalização > Termo de início > + Novo
+- Após a emissão: Fiscalização > Termo de início > Pesquisar > Operações adicionais > Confirmar entrega
+- Enviar o TIAF por e-mail ao sujeito da ação fiscal
+- Anexar o TIAF ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
+- Anexar o comprovante de envio do e-mail ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
+
+# 7 | Registrar a Ação Fiscal no Portal do Simples Nacional (Entes Federados) | campos=dataCienciaOS,dataTIAF,numTIAF,cpfContato,dataRegistroSN
+- SEFISC > Registro da Ação Fiscal:
+-- Perfil → FISCAL DO ENTE
+- Ação Fiscal > Inclusão de Ação Fiscal
+- Seleção dos Estabelecimentos (selecionar sujeito da ação fiscal).
+- Se o sistema do Simples avisar que a matriz é de outra UF: marcar “Matriz em outra UF?” = Sim no topo da página
+- Escolha dos Fatos Geradores (selecionar “ISS”)
+- Dados dos Fiscais (incluir os responsáveis, mín. 2 AFRM)
+-- Selecionar a unidade {{00111 - DIVISÃO FISCALIZAÇÃO TRIBUTOS PRÓPRIOS}}
+- Dados da Ação Fiscal:
+-- Data de início da contagem do prazo para término da fiscalização → Data da entrega da OS (data ciente), constante do GFT: {{$dataCienciaOS}}
+-- Motivação Principal → {{Seleção Interna (0001)}}
+-- Nome do Documento Interno → {{Ordem de Serviço (OS)}}
+-- Número do Documento Interno → Nº da OS emitida: {{$os}}
+- Dados do Contato:
+-- Preencher apenas CPF: {{$cpfContato}}
+-- Data de Ciência do Início da Ação Fiscal → Data da emissão do TIAF (provisoriamente): {{$dataTIAF}}
+-- Hora da Ciência do Início da Ação Fiscal → Qualquer hora.
+-- Nome do Documento que deu início a Ação Fiscal → {{Termo de Início de Ação Fiscal (TIAF)}}
+-- Número do Documento que deu início a Ação Fiscal → Nº do TIAF emitido: {{$numTIAF}}
+- Confirmação → Confirmar cadastro
+- Anotar abaixo a data do registro (abertura) da ação fiscal no Simples Nacional
+
+# 7A | Aguardar 10 dias: outras UFs decidem se entram na ação fiscal | cond=outraUF | espera=dataRegistroSN:10 | campos=dataRegistroSN
+i Enquanto o prazo não terminar, as etapas seguintes ficam TRAVADAS (dá para liberar manualmente, com confirmação).
+- Informar a data do registro (abertura) da ação fiscal no Simples Nacional
+- Aguardar o fim do prazo de 10 dias (as outras UFs se pronunciam sobre entrar ou não na ação fiscal)
+
+# 8 | Baixar arquivo XML do PGDAS-D do sujeito da ação fiscal. | campos=cnpj
+- SEFISC > AINF 4.0 > Baixar PGDAS-D (por CNPJ).
+- Criar uma pasta específica para cada sujeito de ação fiscal contendo os seguintes arquivos: XML do PGDAS-D e Calculadora_AINF4.
+! A pasta específica criada não pode ser "pasta compartilhada" (OneDrive, Dropbox, Google Drive, etc).
+
+# 9 | Realizar a apuração na calculadora
+- Verificar anexo de enquadramento do CNAE e item da lista de serviços (ISS).
+- Verificar se existem retenções nas NFe emitidas.
+- Enquadrar DBCs e/ou SIRs no código de atividade específico para o SN.
+- Dentro do contribuinte/processo específico: Apuração > Abrir Calculadora AINF > Criar apuração para Processo nº ... > Importar PGDAS-D
+- Incluir DBCs e/ou SIRs na calculadora do Portal Apura.
+- A apuração constatou Anexo V (fator R)? Responder no topo da página (Sim / Não)
+
+# 9A | Termo de intimação (10 dias): folha de pagamento — Anexo V / fator R | cond=anexoV | espera=dataCienciaIntimacao:10 | campos=dataCienciaIntimacao
+i Apuração em PAUSA. Só depois de receber a folha de pagamento (ou do prazo vencer) a apuração é concluída e o XML do AINF é exportado.
+- Emitir o Termo de Intimação no GFT (10 dias para o contribuinte apresentar a folha de pagamento)
+- Após a emissão: confirmar a entrega no GFT
+- Enviar o Termo de Intimação por e-mail ao contribuinte
+- Anexar o Termo de Intimação ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
+- Anexar o comprovante de envio do e-mail ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
+- Informar a data da leitura do e-mail pelo contribuinte (plugin): os 10 dias corridos contam dessa data
+- Folha de pagamento recebida @libera
+
+# 9B | Terminar a apuração com a folha de pagamento | cond=anexoV
+- Analisar a folha de pagamento apresentada (fator R)
+- Terminar a apuração na calculadora
+
+# 10 | Fazer a validação automática do AINF gerado pelo Portal do Auditor. | depende=9
+i Obs.: Esta etapa será provisoriamente necessária para validação dos XMLs dos AINF gerados via Portal do Auditor.
+- Dentro do contribuinte/processo específico: Apuração > Abrir Calculadora AINF > Validação Automática.
+- Confirmar que a validação automática não apontou divergências
+
+# 11 | Exportar o XML do AINF dentro do Portal do Auditor | depende=10
+i Obs.: O arquivo gerado após o procedimento terá o nome identificado por “web” ao final.
+- Após apuração e validação: Calcular&Gerar AINF > AINF XML
+
+# 12 | Gerar o TCAF (Relatório Fiscal) no GFT
+i Obs.: Essa etapa é necessária à realização da seguinte, uma vez que o TCAF será anexado ao AINF gerado no Portal do Simples Nacional (Entes Federados).
+- Fiscalização > Termo de conclusão > + Novo
+
+# 13 | Gerar o AINF "oficial" no Portal do Simples Nacional (Entes Federados) | depende=10,11,12 | exigeBaixada | campos=numAINF,dataCienciaTIAF
+- CONFERÊNCIA: a empresa está baixada? Confirmar a resposta no topo da página (Sim / Não) @conf
+- CONFERÊNCIA: houve PAs não fiscalizados? Se sim, será preciso justificar o motivo @conf
+- CONFERÊNCIA: validação automática concluída sem divergências (etapa 10) @conf
+- Atualizar a data de ciência ao TIAF nos dados do registro da ação fiscal no SN (etapa 7): {{$dataCienciaTIAF}}
+- SEFISC > AINF 4.0 > Lavrar auto > Botão de ação “Enviar Dados Apurados” > Importar XML do AINF gerado pelo Portal do Auditor (uma vez não identificadas divergências na etapa de “Validação Automática”) > Enviar Dados Apurados > Voltar > Botão de ação “Gerar AINF”
+-- Exigibilidade suspensa → Não
+-- Justificar motivo → Somente se houver PAs não fiscalizados.
+-- Anexar documentos → TCAF (marcar checkbox “Relatório Fiscal” antes de anexar), NFS-e (relatório do tipo “Todas as abas PDF” pelo NFe-cidades) e outros que forem pertinentes.
+-- Informações do sujeito passivo → Confirmar
+-- Complementar AINF Parte 1 → Informar nº do Processo Administrativo, prazo de impugnação “em dias”, selecionar autoridades autuantes.
+-- Complementar AINF Parte 2 → Intimar outros responsáveis se a empresa estiver baixada ou em outros casos pertinentes.
+--- EMPRESA BAIXADA: @baixada
+---- Responsabilidade Tributária → {{Resp. Solidária por Empresa Extinta}} @baixada
+---- Qualificação do Responsável → {{TITULAR - EMPRESA BAIXADA}} (se empresário individual) @baixada
+---- Motivação → {{Extinção por Encerramento Liquidação Voluntária}} @baixada
+---- Data Inicial → Data de início da atividade (cartão CNPJ): {{$dataInicioAtividade}} @baixada
+---- Data Final → Data do encerramento da atividade (cartão CNPJ): {{$dataEncerramento}} @baixada
+-- Confirmar Dados Emissão → Marcar “Todas as orientações acima foram observadas!” > Gerar rascunho (a fim de conferir os valores PDF Portal Auditor com Rascunho AINF Portal do Simples Nacional) > Gerar AINF (se estiver tudo correto)
+- Download “AINF Completo”
+
+# 14 | Enviar “AINF completo”, TCAF, Termo de Ciência de Lançamento (TC-CONT) e documentos complementares por e-mail, em seguida, anexá-los aos PTA no GRPweb. | campos=processoGRP!
+- Enviar por e-mail: AINF completo, TCAF, TC-CONT e documentos complementares
+- Anexar o AINF completo, o TCAF, o TC-CONT e os documentos complementares ao PTA no GRPweb
+- Anexar o comprovante de envio do e-mail ao PTA no GRPweb (marcar checkbox "Público", "Envia Anexo" e "Representa Documento?")
+- Salvar o nº do processo no GRP (obrigatório para concluir)
+
+# 15 | Registrar ciência do lançamento (AINF) no Portal do Simples Nacional | campos=processoSN,dataCienciaLancamento
+i Obs.: Somente após essa etapa o sujeito passivo poderá emitir o DAS com desconto da multa.
+- SEFISC > Contencioso > Informar número do processo que está no Termo de Ciência de Lançamento (TC-CONT) ou CNPJ > OK.
+- Selecionar o processo
+- Eventos > Ciência de Lançamento > Informar a Forma de Ciência e Data de Ciência (Data de Vencimento da Multa será gerada automaticamente) > Gravar Ciência.
+
+# 16 | Encaminhar à inscrição de Dívida Ativa (Portal do SN) | campos=numAINF,processoSN
+i Obs.: Essa etapa será implementada apenas se não houver pagamento/parcelamento ou a apresentação de impugnação administrativa (verificar na guia "Dívida Ativa" a situação do CT constituído). Se não se aplicar, use o botão “Não se aplica”.
+- SEFISC > Dívida Ativa > Gerar documentos > Nº AINF > Baixar "Extrato de Débitos" e "Termo de Encaminhamento (TEPDA)"
+- Renomear os documentos baixados da seguinte forma: NomedoDocumento_NºAINF_Nºprocessosimplesnacional → {{NomedoDocumento_$numAINF_$processoSN}}
+- Assinar Termo de Encaminhamento pelo próprio editor de textos.
+- Anexar documentos no Portal do SN: primeiro, o Extrato de Débitos e, logo em seguida, o TEPDA (marcando o checkbox correspondente).
+- Anexar os documentos em questão também ao processo online, via GRPweb.
+
+# 17 | Arquivar o processo no GRPweb.
+i Obs.: O processo constará do menu "Arquivados" no servidor fiscal em questão, para futuro desarquivamento, caso necessário. Ao marcar a última etapa exigida, a fiscalização é concluída.
+- Clicar no botão "Arquivar" dentro do processo específico.
+- Encerrar o documento antes do arquivamento? → Sim
+- Parecer: {{Concedido}}
+- Finalidade: {{Para Arquivamento}}
+- Local de Arquivamento: {{DEPARTAMENTO DE TRIBUTAÇÃO}}
+- Marcar: "Visível ao Contato/Solicitante"
+- Descrição: {{Procedimento de fiscalização encerrado conforme TCAF anexo.}}
+`;
+
+const CAMPOS = {
+  nome:{r:'Nome / razão social do contribuinte'},
+  cnpj:{r:'CNPJ',t:'cnpj'},
+  inscMunicipal:{r:'Inscrição municipal'},
+  email:{r:'E-mail do contribuinte'},
+  socio:{r:'Sócio / representante'},
+  cpfContato:{r:'CPF do contato (Simples Nacional)'},
+  periodos:{r:'Ano-calendário / PAs fiscalizados'},
+  os:{r:'Nº da OS'},
+  dataCienciaOS:{r:'Data da entrega da OS (data ciente, no GFT)',t:'data'},
+  processoGRP:{r:'Nº do processo no GRP'},
+  numTIAF:{r:'Nº do TIAF'},
+  dataTIAF:{r:'Data de emissão do TIAF',t:'data'},
+  dataCienciaTIAF:{r:'Data de ciência do TIAF (leitura do e-mail)',t:'data'},
+  dataRegistroSN:{r:'Data do registro (abertura) da ação fiscal no Simples Nacional',t:'data'},
+  dataInicioAtividade:{r:'Início da atividade (cartão CNPJ)',t:'data',c:'baixada'},
+  dataEncerramento:{r:'Encerramento da atividade (cartão CNPJ)',t:'data',c:'baixada'},
+  dataCienciaIntimacao:{r:'Leitura do e-mail da intimação (plugin)',t:'data',c:'anexoV'},
+  numAINF:{r:'Nº do AINF'},
+  processoSN:{r:'Nº do processo no Simples Nacional (TC-CONT)'},
+  dataCienciaLancamento:{r:'Data de ciência do lançamento',t:'data'}
+};
+const ROT_COND = {
+  baixada:{r:'Empresa baixada?',tag:'BAIXADA'},
+  outraUF:{r:'Matriz em outra UF?',tag:'OUTRA UF'},
+  anexoV:{r:'Anexo V (fator R)?',tag:'ANEXO V'}
+};
+const CHAVE = 'assistenteFiscal.v1';
+
+/* ============================================================
+   Utilitários
+   ============================================================ */
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const agora = () => new Date().toISOString();
+const hoje = () => { const d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); };
+const parseData = iso => { const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d); };
+const addDias = (iso,n) => { const d=parseData(iso); d.setDate(d.getDate()+n); return d; };
+const difDias = (a,b) => Math.round((b-a)/86400000);
+const fmtData = d => { if(typeof d==='string'){ if(!d) return ''; d=parseData(d); } return d.toLocaleDateString('pt-BR'); };
+const fmtHora = iso => new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const clone = o => JSON.parse(JSON.stringify(o));
+const slug = s => (s||'sem-nome').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'sem-nome';
+
+/* ============================================================
+   Roteiro: texto <-> estrutura
+   ============================================================ */
+function parseFonte(txt){
+  const etapas=[], erros=[]; let et=null;
+  txt.split(/\r?\n/).forEach((linha,n)=>{
+    const l=linha.trim(); if(!l||l.startsWith('//')) return;
+    if(l[0]==='#'){
+      const partes=l.slice(1).split('|').map(s=>s.trim());
+      const num=partes[0], titulo=partes[1]||'';
+      if(!num||!titulo){erros.push(`Linha ${n+1}: use "# número | título".`);return;}
+      if(etapas.some(x=>x.num===num)){erros.push(`Linha ${n+1}: o número de etapa "${num}" está repetido.`);return;}
+      et={id:num,num,titulo,cond:null,espera:null,campos:[],depende:[],exigeBaixada:false,obs:[],passos:[]};
+      partes.slice(2).forEach(op=>{
+        const i=op.indexOf('='); const k=i<0?op:op.slice(0,i).trim(), v=i<0?'':op.slice(i+1).trim();
+        if(k==='cond'){ if(ROT_COND[v]) et.cond=v; else erros.push(`Linha ${n+1}: condição "${v}" desconhecida.`); }
+        else if(k==='espera'){ const [campo,dias]=v.split(':'); et.espera={campo:campo,dias:parseInt(dias,10)||10}; }
+        else if(k==='campos'){ et.campos=v.split(',').map(s=>s.trim()).filter(Boolean).map(s=>{ const req=s.includes('!'); const [chave,c]=s.replace('!','').split('@'); return {chave,req,c:c||null}; }); }
+        else if(k==='depende'){ et.depende=v.split(',').map(s=>s.trim()).filter(Boolean); }
+        else if(k==='exigeBaixada'){ et.exigeBaixada=true; }
+      });
+      etapas.push(et); return;
+    }
+    if(!et){erros.push(`Linha ${n+1}: escreva primeiro a linha da etapa (# número | título).`);return;}
+    if(l.startsWith('! ')) et.obs.push({tipo:'alerta',texto:l.slice(2)});
+    else if(l.startsWith('i ')) et.obs.push({tipo:'info',texto:l.slice(2)});
+    else if(l[0]==='-'){
+      const m=l.match(/^(-+)\s*(.*)$/); let texto=m[2]; const nivel=Math.min(m[1].length-1,4);
+      let cond=null,conf=false,libera=false;
+      texto=texto.replace(/\s@(\w+)/g,(_,t)=>{ if(t==='conf')conf=true; else if(t==='libera')libera=true; else if(ROT_COND[t])cond=t; return ''; }).trim();
+      et.passos.push({id:null,nivel,texto,cond,condPropria:cond,conf,libera,filhos:false});
+    } else erros.push(`Linha ${n+1}: não entendi "${l.slice(0,40)}…" (passos começam com "-").`);
+  });
+  etapas.forEach(e=>{
+    e.passos.forEach((p,i)=>{ p.filhos = i+1<e.passos.length && e.passos[i+1].nivel>p.nivel; });
+    const pilha=[];
+    e.passos.forEach(p=>{
+      while(pilha.length && pilha[pilha.length-1].nivel>=p.nivel) pilha.pop();
+      if(!p.cond){ const a=[...pilha].reverse().find(x=>x.cond); if(a) p.cond=a.cond; }
+      pilha.push(p);
+    });
+  });
+  return {etapas,erros};
+}
+function toFonte(etapas){
+  return etapas.map(e=>{
+    const op=[];
+    if(e.cond) op.push('cond='+e.cond);
+    if(e.espera) op.push(`espera=${e.espera.campo}:${e.espera.dias}`);
+    if(e.campos.length) op.push('campos='+e.campos.map(c=>c.chave+(c.req?'!':'')+(c.c?'@'+c.c:'')).join(','));
+    if(e.depende.length) op.push('depende='+e.depende.join(','));
+    if(e.exigeBaixada) op.push('exigeBaixada');
+    const L=['# '+[e.num,e.titulo,...op].join(' | ')];
+    e.obs.forEach(o=>L.push((o.tipo==='alerta'?'! ':'i ')+o.texto));
+    e.passos.forEach(p=>L.push('-'.repeat(p.nivel+1)+' '+p.texto+(p.condPropria?' @'+p.condPropria:'')+(p.conf?' @conf':'')+(p.libera?' @libera':'')));
+    return L.join('\n');
+  }).join('\n\n')+'\n';
+}
+function mapearIds(antigas,novas){
+  novas.forEach(ne=>{
+    const ae=antigas&&antigas.find(x=>x.num===ne.num);
+    const usados=new Set();
+    if(ae){
+      const porTexto=new Map();
+      ae.passos.forEach(p=>{ if(!porTexto.has(p.texto)) porTexto.set(p.texto,[]); porTexto.get(p.texto).push(p); });
+      ne.passos.forEach(p=>{ const arr=porTexto.get(p.texto); const m=arr&&arr.find(o=>!usados.has(o.id)); if(m){p.id=m.id;usados.add(m.id);} });
+      const textosNovos=new Set(ne.passos.map(p=>p.texto));
+      ne.passos.forEach((p,i)=>{ if(p.id) return; const o=ae.passos[i]; if(o&&!usados.has(o.id)&&!textosNovos.has(o.texto)){p.id=o.id;usados.add(o.id);} });
+    }
+    ne.passos.forEach(p=>{ if(!p.id) p.id='n'+uid(); });
+  });
+  return novas;
+}
+const ROTEIRO_PADRAO = (()=>{ const r=parseFonte(FONTE_PADRAO); r.etapas.forEach(e=>e.passos.forEach((p,i)=>p.id=e.num+'-'+i)); return r.etapas; })();
+
+/* ============================================================
+   Estado e persistência
+   ============================================================ */
+let S, drafts={}, fh=null, fhProc=null, erroNavegador=false;
+const cur = () => S.processos.find(p=>p.id===S.atualId);
+function globaisPadrao(){ return [
+  {id:uid()+'a',rotulo:'Meu nome',valor:''},
+  {id:uid()+'b',rotulo:'Meu e-mail',valor:''},
+  {id:uid()+'c',rotulo:'Segundo(a) auditor(a)',valor:''},
+  {id:uid()+'d',rotulo:'Unidade (Simples Nacional)',valor:'00111 - DIVISÃO FISCALIZAÇÃO TRIBUTOS PRÓPRIOS'},
+  {id:uid()+'e',rotulo:'Local de cadastro (GRP)',valor:'Departamento de Protocolos Tributários Digitais'},
+  {id:uid()+'f',rotulo:'Local de arquivamento (GRP)',valor:'DEPARTAMENTO DE TRIBUTAÇÃO'}
+]; }
+function normalizar(p){
+  p.dados=p.dados||{}; p.extras=p.extras||[]; p.cond=Object.assign({baixada:'nv',outraUF:'nv',anexoV:'nv'},p.cond||{});
+  p.feito=p.feito||{}; p.na=p.na||{}; p.liberacoes=p.liberacoes||{}; p.notas=p.notas||{}; p.notaGeral=p.notaGeral||'';
+  p.historico=p.historico||[]; p.abertas=p.abertas||{}; p.roteiro=p.roteiro||clone(ROTEIRO_PADRAO);
+  p.id=p.id||uid(); p.criadoEm=p.criadoEm||agora(); p.atualizadoEm=p.atualizadoEm||agora();
+  return p;
+}
+function carregar(){
+  try{ const t=localStorage.getItem(CHAVE); if(t) S=JSON.parse(t); }catch(e){ erroNavegador=true; }
+  if(!S||!Array.isArray(S.processos)) S={v:1,atualId:null,processos:[],globais:globaisPadrao(),modelo:null};
+  S.processos.forEach(normalizar);
+  if(!S.processos.length) novoProcesso();
+  if(!cur()) S.atualId=S.processos[0].id;
+}
+let tSalvar;
+function salvar(){ const p=cur(); if(p) p.atualizadoEm=agora(); clearTimeout(tSalvar); tSalvar=setTimeout(persistir,150); }
+function persistir(){
+  try{ localStorage.setItem(CHAVE,JSON.stringify(S)); erroNavegador=false; }catch(e){ erroNavegador=true; }
+  escreverArquivo(); atualizarStatus();
+}
+function log(texto){ const p=cur(); p.historico.push({t:agora(),texto}); }
+function novoProcesso(){
+  const p=normalizar({id:uid(),roteiro:clone(S.modelo||ROTEIRO_PADRAO)});
+  S.processos.push(p); S.atualId=p.id; log('Processo criado');
+}
+
+/* ============================================================
+   Cálculo: visibilidade, progresso, prazos e travas
+   ============================================================ */
+const condEstado = (p,c) => (p.cond&&p.cond[c])||'nv';
+function etapaVis(p,e){ if(!e.cond) return 'ativa'; const s=condEstado(p,e.cond); return s==='sim'?'ativa':s==='nv'?'dormente':'oculta'; }
+function passoVis(p,ps){ if(!ps.cond) return 'ativo'; const s=condEstado(p,ps.cond); return s==='sim'?'ativo':s==='nv'?'dormente':'oculto'; }
+function statusPrazo(p,e){
+  const ini=p.dados[e.espera.campo]; if(!ini) return {estado:'semInicio'};
+  const fim=addDias(ini,e.espera.dias), rest=difDias(hoje(),fim);
+  return {estado:rest>=0?'andamento':'encerrado',fim,rest};
+}
+function calc(p){
+  let bloq=null; const infos=[];
+  p.roteiro.forEach(e=>{
+    const vis=etapaVis(p,e);
+    const info={e,vis,folhas:[],feitos:0,na:!!p.na[e.id],concl:false,lock:null,prazo:null,liberada:false,proxima:false};
+    infos.push(info);
+    if(vis==='oculta') return;
+    info.folhas=e.passos.filter(x=>!x.filhos&&passoVis(p,x)==='ativo');
+    info.feitos=info.folhas.filter(x=>p.feito[x.id]).length;
+    info.concl=info.na||(vis==='ativa'&&info.folhas.length>0&&info.feitos===info.folhas.length);
+    if(bloq&&vis==='ativa') info.lock=bloq;
+    if(e.espera&&vis==='ativa'){
+      info.prazo=statusPrazo(p,e);
+      info.porPasso=e.passos.some(x=>x.libera&&p.feito[x.id]);
+      info.manual=!!p.liberacoes[e.id];
+      info.liberada=info.manual||info.porPasso||info.prazo.estado==='encerrado';
+      if(!info.liberada&&!bloq) bloq=info;
+    }
+  });
+  const prox=infos.find(i=>i.vis==='ativa'&&!i.concl&&!i.lock);
+  if(prox) prox.proxima=true;
+  const ativas=infos.filter(i=>i.vis==='ativa'&&!i.na);
+  const total=ativas.reduce((a,i)=>a+i.folhas.length,0), feitos=ativas.reduce((a,i)=>a+i.feitos,0);
+  const faltando=[];
+  infos.filter(i=>i.vis==='ativa'&&!i.na).forEach(i=>i.e.campos.forEach(c=>{ if(c.req&&!(p.dados[c.chave]||'').trim()&&!faltando.includes(c.chave)) faltando.push(c.chave); }));
+  return {infos,total,feitos,pct:total?Math.round(feitos*100/total):0,faltando,
+    todas:infos.filter(i=>i.vis==='ativa').every(i=>i.concl)};
+}
+function textoPrazo(i){
+  const pz=i.prazo; if(!pz) return '';
+  if(i.manual) return 'liberado manualmente';
+  if(i.porPasso) return 'liberado';
+  if(pz.estado==='semInicio') return 'defina a data de início';
+  if(pz.estado==='encerrado') return 'prazo encerrado em '+fmtData(pz.fim);
+  return pz.rest===0?'ÚLTIMO DIA (hoje)':`faltam ${pz.rest} dia${pz.rest>1?'s':''} (até ${fmtData(pz.fim)})`;
+}
+
+/* ============================================================
+   Texto com botões de copiar e dados do processo
+   ============================================================ */
+function resolver(tpl){
+  const p=cur();
+  return tpl.replace(/\$([A-Za-z][A-Za-z0-9]*)/g,(m,k)=>{
+    const v=((p.dados[k]||'')+'').trim();
+    if(!v) return '‹'+(CAMPOS[k]?CAMPOS[k].r:k)+'›';
+    return CAMPOS[k]&&CAMPOS[k].t==='data'?fmtData(v):v;
+  });
+}
+function fmtTexto(t){
+  let out='',ult=0;
+  t.replace(/\{\{(.+?)\}\}/g,(m,tpl,i)=>{
+    out+=esc(t.slice(ult,i));
+    out+=`<button type="button" class="chip" data-act="copy-chip" data-tpl="${esc(tpl)}" title="Clique para copiar">${esc(resolver(tpl))}</button>`;
+    ult=i+m.length; return m;
+  });
+  return out+esc(t.slice(ult));
+}
+function refreshChips(){ document.querySelectorAll('.chip[data-tpl]').forEach(b=>{ b.textContent=resolver(b.dataset.tpl); }); }
+function valorCampo(k){ const v=(cur().dados[k]||'').trim(); return CAMPOS[k]&&CAMPOS[k].t==='data'&&v?fmtData(v):v; }
+function copiar(txt,rot){
+  const ok=()=>aviso('Copiado: '+(rot||txt).slice(0,70));
+  const fb=()=>{ const t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select(); try{document.execCommand('copy');ok();}catch(e){aviso('Não consegui copiar.','verm');} t.remove(); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok,fb); else fb();
+}
+let tAviso;
+function aviso(msg,cor){
+  const d=document.createElement('div'); d.className='toast '+(cor||''); d.textContent=msg; $('aviso').appendChild(d);
+  setTimeout(()=>d.remove(),cor==='verm'||cor==='lara'||cor==='amar'?7000:2200);
+}
+
+/* ============================================================
+   Renderização
+   ============================================================ */
+function htmlCampo(chave,req){
+  const d=CAMPOS[chave]; if(!d) return '';
+  const v=cur().dados[chave]||'';
+  return `<div class="campo${req&&!v.trim()?' falta':''}"><label>${esc(d.r)}${req?' <b class="obrig">(obrigatório para concluir)</b>':''}</label>
+    <div class="lin"><input type="${d.t==='data'?'date':'text'}" data-campo="${chave}" value="${esc(v)}" autocomplete="off">
+    <button type="button" class="mini" data-act="copy-campo" data-k="${chave}" title="Copiar">Copiar</button>${d.t==='cnpj'?`<button type="button" class="mini" data-act="copy-num" data-k="${chave}" title="Copiar só os números">Só nº</button>`:''}</div></div>`;
+}
+function htmlPassos(p,info){
+  const e=info.e, cont=[0,0,0,0,0]; let h='<ul class="passos">';
+  const travada=!!info.lock, dormEtapa=info.vis==='dormente';
+  e.passos.forEach(ps=>{
+    cont[ps.nivel]++; for(let i=ps.nivel+1;i<5;i++) cont[i]=0;
+    const vis=passoVis(p,ps); if(vis==='oculto') return;
+    const num=e.num+'.'+cont.slice(0,ps.nivel+1).join('.');
+    const dorm=vis==='dormente';
+    const cc=ps.cond?' cond-'+ps.cond:'';
+    const tagc=ps.condPropria?`<span class="tag t-${ps.condPropria}">${dorm?'SE ':''}${ROT_COND[ps.condPropria].tag}</span>`:'';
+    if(ps.filhos){
+      h+=`<li class="grupo n${ps.nivel}${cc}${dorm?' dorm':''}"><span class="pn">${esc(num)}</span>${fmtTexto(ps.texto)}${tagc}</li>`;
+    } else {
+      const f=p.feito[ps.id];
+      h+=`<li class="passo n${ps.nivel}${cc}${f?' feito':''}${ps.conf?' conf':''}${dorm?' dorm':''}"><label>
+        <input type="checkbox" data-chk="${esc(ps.id)}" data-eid="${esc(e.id)}"${f?' checked':''}${travada||dormEtapa||dorm?' disabled':''}>
+        <span><span class="pn">${esc(num)}</span><span class="pt">${fmtTexto(ps.texto)}</span>${tagc}</span></label>
+        ${f?`<span class="quando" title="Marcado em ${esc(new Date(f).toLocaleString('pt-BR'))}">✔ ${esc(fmtHora(f))}</span>`:''}</li>`;
+    }
+  });
+  return h+'</ul>';
+}
+function htmlNotas(p,e){
+  const L=p.notas[e.id]||[];
+  const d=drafts[e.id]||{texto:'',lemb:false};
+  return `<div class="notas"><b>Observações e lembretes desta etapa</b>
+    ${L.map(n=>`<div class="nota${n.lembrete?' lemb':''}${n.resolvido?' res':''}">
+      ${n.lembrete?`<input type="checkbox" data-resnota="${esc(n.id)}" data-eid="${esc(e.id)}" title="Marcar lembrete como resolvido"${n.resolvido?' checked':''}>`:''}
+      <span class="qd">${esc(fmtHora(n.t))}${n.lembrete?' · LEMBRETE':''}</span><span class="tx">${esc(n.texto)}</span>
+      <button type="button" class="mini" data-act="del-nota" data-eid="${esc(e.id)}" data-nid="${esc(n.id)}" title="Apagar">✕</button></div>`).join('')}
+    <div class="addnota"><textarea data-draft="${esc(e.id)}" placeholder="Escreva uma observação ou lembrete… (Ctrl+Enter para adicionar)">${esc(d.texto)}</textarea>
+    <div class="lin"><label><input type="checkbox" data-draftlemb="${esc(e.id)}"${d.lemb?' checked':''}> Lembrete (fica em destaque até ser resolvido)</label>
+    <button type="button" class="btn" data-act="add-nota" data-eid="${esc(e.id)}">Adicionar</button></div></div></div>`;
+}
+function htmlEtapa(p,info){
+  const e=info.e, vis=info.vis;
+  const aberta=p.abertas[e.id]!==undefined?p.abertas[e.id]:info.proxima;
+  let cls='etapa'+(e.cond?' c-'+e.cond:'');
+  if(vis==='dormente') cls+=' dormente'; else if(info.na) cls+=' na'; else if(info.concl) cls+=' concl'; else if(info.lock) cls+=' trav'; else if(info.proxima) cls+=' prox';
+  let tags='';
+  if(e.cond) tags+=`<span class="tag t-${e.cond}">${vis==='dormente'?'SE ':''}${ROT_COND[e.cond].tag}</span>`;
+  if(info.na) tags+='<span class="tag">NÃO SE APLICA</span>';
+  else if(info.concl) tags+='<span class="tag t-ok">✔ CONCLUÍDA</span>';
+  if(info.lock) tags+='<span class="tag t-trav">🔒 TRAVADA</span>';
+  if(info.proxima) tags+='<span class="tag t-prox">▶ PRÓXIMA</span>';
+  if(info.prazo) tags+=`<span class="tag ${info.liberada?'t-ok':'t-prazo'}">⏳ ${esc(textoPrazo(info))}</span>`;
+  let h=`<div class="${cls}" id="et-${esc(e.id)}"><div class="cab" data-act="toggle-etapa" data-id="${esc(e.id)}">
+    <span class="num">${esc(e.num)}</span><span class="tit">${esc(e.titulo)}${tags}</span>
+    <span class="cont">${info.folhas.length?info.feitos+'/'+info.folhas.length:''}</span><span>${aberta?'▾':'▸'}</span></div>`;
+  if(aberta){
+    h+='<div class="corpo">';
+    if(vis==='dormente') h+=`<div class="obs">Etapa condicional: só entra no roteiro se a condição “${esc(ROT_COND[e.cond].r)}” for <b>Sim</b>. Ela ainda não foi respondida (resposta no topo da página).</div>`;
+    if(info.lock){ const b=info.lock;
+      h+=`<div class="bloqueio">🔒 Travada: aguardando a etapa ${esc(b.e.num)} (${esc(b.e.titulo)}) — ${esc(textoPrazo(b))}.
+        <button type="button" class="btn" data-act="liberar" data-id="${esc(b.e.id)}">Liberar mesmo assim</button></div>`; }
+    e.obs.forEach(o=>h+=`<div class="obs ${o.tipo==='alerta'?'alerta':''}">${fmtTexto(o.texto)}</div>`);
+    if(info.prazo){
+      const pz=info.prazo, ok=info.liberada;
+      h+=`<div class="prazo${ok?' ok':''}"><div class="grande">${ok?'✔ Prazo liberado':'⏳ '+esc(textoPrazo(info))}</div>
+        <div>Prazo de ${e.espera.dias} dias corridos a partir de <b>${esc(CAMPOS[e.espera.campo]?CAMPOS[e.espera.campo].r:e.espera.campo)}</b>${pz.fim?' — termina em <b>'+fmtData(pz.fim)+'</b>':''}.</div>
+        ${info.manual?`<button type="button" class="btn" data-act="desliberar" data-id="${esc(e.id)}">Desfazer liberação manual</button>`:''}</div>`;
+    }
+    const cs=e.campos.filter(c=>CAMPOS[c.chave]&&(!c.c||condEstado(p,c.c)!=='nao'));
+    if(cs.length) h+=`<div class="campos">${cs.map(c=>htmlCampo(c.chave,c.req)).join('')}</div>`;
+    h+=htmlPassos(p,info);
+    h+=htmlNotas(p,e);
+    h+=`<div class="rodape"><button type="button" class="btn" data-act="na" data-id="${esc(e.id)}">${info.na?'Voltar a considerar esta etapa':'Não se aplica'}</button></div></div>`;
+  }
+  return h+'</div>';
+}
+function faixasDe(p,c){
+  const F=[], k=p.cond;
+  const q=(cond,txt)=>`<button class="bf" data-act="cond" data-c="${cond}" data-v="sim">Sim</button><button class="bf" data-act="cond" data-c="${cond}" data-v="nao">Não</button>`;
+  if(k.baixada==='nv') F.push({cor:'verm pisca',h:`⚠ ATENÇÃO: situação cadastral NÃO VERIFICADA — a empresa está baixada? Isso muda o AINF (etapa 13). ${q('baixada')}`});
+  if(k.baixada==='sim') F.push({cor:'roxo',h:'EMPRESA BAIXADA — o AINF tem bloco próprio (etapa 13). Anote as datas de início e encerramento da atividade (cartão CNPJ).'});
+  if(k.outraUF==='nv') F.push({cor:'verm pisca',h:`⚠ ATENÇÃO: não verificado se a matriz é de OUTRA UF — se for, são 10 dias de espera depois de abrir a ação fiscal. ${q('outraUF')}`});
+  c.infos.filter(i=>i.e.espera&&i.vis==='ativa').forEach(i=>{
+    const lab=ROT_COND[i.e.cond]?ROT_COND[i.e.cond].tag:'PRAZO', t=textoPrazo(i);
+    const go=`<button class="bf" data-act="goto" data-id="${esc(i.e.id)}">Ver etapa ${esc(i.e.num)}</button>`;
+    if(i.liberada) F.push({cor:'verde',h:`${esc(lab)} — ${esc(t)}. Etapas seguintes liberadas.`});
+    else F.push({cor:'lara',h:`⏳ ${esc(lab)} — ${esc(t)}. Etapas seguintes TRAVADAS. ${go}`});
+  });
+  if(c.todas&&c.faltando.length) F.push({cor:'verm',h:'⚠ Falta preencher (obrigatório para concluir): '+esc(c.faltando.map(x=>CAMPOS[x].r).join('; '))});
+  else if(c.todas) F.push({cor:'verde',h:'✔ FISCALIZAÇÃO CONCLUÍDA — todas as etapas foram marcadas. Salve o JSON para guardar o histórico.'});
+  return F.map(f=>`<div class="faixa ${f.cor}">${f.h}</div>`).join('');
+}
+function htmlOutros(){
+  const L=[];
+  S.processos.filter(p=>p.id!==S.atualId).forEach(p=>{
+    calc(p).infos.filter(i=>i.e.espera&&i.vis==='ativa'&&!i.manual&&!i.porPasso&&i.prazo.estado!=='semInicio').forEach(i=>{
+      if(i.prazo.estado==='encerrado'&&i.prazo.rest<-10) return;
+      const nome=p.dados.nome||p.dados.cnpj||'Sem nome';
+      L.push(`<span><b>${esc(nome)}</b> — ${esc(ROT_COND[i.e.cond]?ROT_COND[i.e.cond].tag:'prazo')}: ${esc(textoPrazo(i))} <button data-act="abrir-proc" data-id="${esc(p.id)}">abrir</button></span>`);
+    });
+  });
+  return L;
+}
+function htmlLateral(p){
+  let h='';
+  const lembs=[]; p.roteiro.forEach(e=>(p.notas[e.id]||[]).forEach(n=>{ if(n.lembrete&&!n.resolvido) lembs.push({e,n}); }));
+  if(lembs.length) h+=`<div class="card lembs"><h2>🔔 Lembretes abertos (${lembs.length})</h2><div class="cc">${lembs.map(x=>`<div class="nota lemb"><input type="checkbox" data-resnota="${esc(x.n.id)}" data-eid="${esc(x.e.id)}" title="Resolver"><span class="tx"><a href="#" data-act="goto" data-id="${esc(x.e.id)}">Etapa ${esc(x.e.num)}</a>: ${esc(x.n.texto)}</span></div>`).join('')}</div></div>`;
+  const visiveis=Object.keys(CAMPOS).filter(k=>!CAMPOS[k].c||condEstado(p,CAMPOS[k].c)!=='nao');
+  h+=`<div class="card dados"><h2>Dados do processo</h2><div class="cc">${visiveis.map(k=>htmlCampo(k,false)).join('')}
+    <div style="margin-top:8px"><b>Outros dados deste processo</b></div>
+    ${p.extras.map(x=>`<div class="linha"><input data-ex="${esc(x.id)}" data-f="rotulo" value="${esc(x.rotulo)}" placeholder="Nome do dado"><input data-ex="${esc(x.id)}" data-f="valor" value="${esc(x.valor)}" placeholder="Valor"><button type="button" class="mini" data-act="copy-extra" data-id="${esc(x.id)}">Copiar</button><button type="button" class="mini" data-act="del-extra" data-id="${esc(x.id)}">✕</button></div>`).join('')}
+    <button type="button" class="btn" data-act="add-extra">＋ Outro dado</button></div></div>`;
+  h+=`<div class="card fixos"><h2>Dados fixos (valem para todos os processos)</h2><div class="cc">
+    ${S.globais.map(x=>`<div class="linha"><input data-gl="${esc(x.id)}" data-f="rotulo" value="${esc(x.rotulo)}" placeholder="Nome do dado"><input data-gl="${esc(x.id)}" data-f="valor" value="${esc(x.valor)}" placeholder="Valor"><button type="button" class="mini" data-act="copy-global" data-id="${esc(x.id)}">Copiar</button><button type="button" class="mini" data-act="del-global" data-id="${esc(x.id)}">✕</button></div>`).join('')}
+    <button type="button" class="btn" data-act="add-global">＋ Dado fixo</button>
+    <div style="font-size:12px;color:#51606f;margin-top:6px">Não guarde senhas aqui.</div></div></div>`;
+  h+=`<div class="card"><h2>Anotações gerais do processo</h2><div class="cc"><textarea data-geral placeholder="O que você pensou, dúvidas, pontos para voltar…">${esc(p.notaGeral)}</textarea></div></div>`;
+  h+=`<div class="card"><details><summary>Histórico (${p.historico.length})</summary><div class="cc hist">${p.historico.slice().reverse().slice(0,300).map(x=>`<div><time>${esc(new Date(x.t).toLocaleString('pt-BR'))}</time>${esc(x.texto)}</div>`).join('')||'Nada ainda.'}</div></details></div>`;
+  return h;
+}
+function renderTopo(p,c){
+  $('selProc').innerHTML=S.processos.map(x=>{ const cc=calc(x); return `<option value="${esc(x.id)}"${x.id===S.atualId?' selected':''}>${esc(x.dados.nome||x.dados.cnpj||'Processo sem nome')} — ${cc.pct}%</option>`; }).join('');
+  const condH=Object.keys(ROT_COND).map(k=>{ const s=condEstado(p,k); return `<div class="cond s-${s} c-${k}"><span class="cl">${esc(ROT_COND[k].r)}</span>
+    <button type="button" data-act="cond" data-c="${k}" data-v="sim" class="${s==='sim'?'on':''}">Sim</button>
+    <button type="button" data-act="cond" data-c="${k}" data-v="nao" class="${s==='nao'?'on':''}">Não</button></div>`; }).join('');
+  $('barra').innerHTML=`<div class="prog"><div class="trilho"><div class="enche" style="width:${c.pct}%"></div></div><small><b>${c.pct}%</b> concluído · ${c.feitos} de ${c.total} passos</small></div>${condH}<div id="status"></div>`;
+  atualizarStatus();
+  $('btnArquivo').hidden=!window.showSaveFilePicker;
+}
+function atualizarStatus(){
+  const el=$('status'); if(!el) return; const p=cur();
+  let t=erroNavegador?'<span class="alerta">⚠ Não consegui salvar no navegador — use “Salvar JSON”.</span> ':'Salvo automaticamente neste navegador. ';
+  if(fh&&fhProc===p.id) t+=`Gravando também em <b>${esc(fh.name)}</b>.`;
+  else if(!p.ultimoExport) t+='<span class="alerta">JSON ainda não salvo.</span>';
+  else if(p.atualizadoEm>p.ultimoExport) t+=`<span class="alerta">Há alterações depois do último JSON salvo (${esc(fmtHora(p.ultimoExport))}).</span>`;
+  else t+=`Último JSON salvo em ${esc(fmtHora(p.ultimoExport))}.`;
+  el.innerHTML=t;
+}
+function render(){
+  const p=cur(), c=calc(p);
+  const lat=$('lateral'), st=lat.scrollTop;
+  renderTopo(p,c);
+  $('faixas').innerHTML=faixasDe(p,c);
+  const o=htmlOutros(); const eo=$('outros'); eo.hidden=!o.length; eo.innerHTML=o.length?'⏳ <b>Prazos em outros processos:</b> '+o.join(' &nbsp;·&nbsp; '):'';
+  $('etapas').innerHTML=c.infos.filter(i=>i.vis!=='oculta').map(i=>htmlEtapa(p,i)).join('');
+  lat.innerHTML=htmlLateral(p);
+  lat.scrollTop=st;
+  window._calc=c;
+}
+
+/* ============================================================
+   Ações
+   ============================================================ */
+function irPara(id){ const p=cur(); p.abertas[id]=true; salvar(); render(); const el=$('et-'+id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+function alternarPasso(pid,eid,marcar){
+  const p=cur(), c=window._calc, info=c.infos.find(i=>i.e.id===eid), e=info.e, ps=e.passos.find(x=>x.id===pid);
+  if(p.abertas[eid]===undefined) p.abertas[eid]=true; // não fecha a etapa sozinha depois de você mexer nela
+  if(marcar){
+    const pend=e.depende.map(d=>c.infos.find(i=>i.e.num===d||i.e.id===d)).filter(i=>i&&i.vis==='ativa'&&!i.concl);
+    if(pend.length&&!confirm('Atenção: ainda não foram concluídas as etapas: '+pend.map(i=>i.e.num+' ('+i.e.titulo.slice(0,45)+')').join('; ')+'.\n\nMarcar este passo mesmo assim?')){ render(); return; }
+    if(e.exigeBaixada&&p.cond.baixada==='nv'&&!confirm('A situação cadastral NÃO foi verificada: a empresa está baixada?\nSe estiver, o AINF muda (bloco de empresa baixada).\n\nMarcar este passo mesmo assim?')){ render(); return; }
+    p.feito[pid]=agora(); log(`Marcou ${e.num}: ${ps.texto.slice(0,90)}`);
+    if(!pend.length){
+      const antes=[]; for(const i of c.infos){ if(i.e.id===eid) break; if(i.vis==='ativa'&&!i.na&&!i.concl&&i.folhas.length&&!i.lock) antes.push(`${i.e.num} (${i.folhas.length-i.feitos})`); }
+      if(antes.length) aviso('Ainda há passos pendentes antes: etapa '+antes.slice(0,5).join(', etapa ')+(antes.length>5?'…':''),'amar');
+    }
+  } else { delete p.feito[pid]; log(`Desmarcou ${e.num}: ${ps.texto.slice(0,90)}`); }
+  salvar(); render();
+}
+const acoes = {
+  'toggle-etapa':el=>{ const p=cur(), id=el.dataset.id, i=window._calc.infos.find(x=>x.e.id===id); const atual=p.abertas[id]!==undefined?p.abertas[id]:i.proxima; p.abertas[id]=!atual; salvar(); render(); },
+  'goto':(el,ev)=>{ ev.preventDefault(); irPara(el.dataset.id); },
+  'cond':el=>{ const p=cur(), c=el.dataset.c, v=el.dataset.v; const novo=p.cond[c]===v?'nv':v; p.cond[c]=novo; log(`${ROT_COND[c].r} → ${novo==='nv'?'não verificado':novo==='sim'?'SIM':'não'}`); salvar(); render(); },
+  'na':el=>{ const p=cur(), id=el.dataset.id; if(p.na[id]){ delete p.na[id]; log('Etapa '+id+': voltou a valer'); } else { if(!confirm('Marcar a etapa '+id+' como “não se aplica”?')) return; p.na[id]=agora(); log('Etapa '+id+': não se aplica'); } salvar(); render(); },
+  'liberar':el=>{ const p=cur(), id=el.dataset.id; if(!confirm('Liberar as etapas seguintes antes do fim do prazo?\n\nVocê preferiu deixar tudo parado para não se confundir — confirme só se tiver certeza.')) return; p.liberacoes[id]=agora(); log('Espera da etapa '+id+' liberada manualmente'); salvar(); render(); },
+  'desliberar':el=>{ const p=cur(); delete p.liberacoes[el.dataset.id]; log('Liberação manual desfeita (etapa '+el.dataset.id+')'); salvar(); render(); },
+  'copy-chip':el=>{ const t=resolver(el.dataset.tpl); if(t.includes('‹')) aviso('Esse dado ainda não foi preenchido — copiei com o espaço em branco.','amar'); copiar(t); },
+  'copy-campo':el=>{ const v=valorCampo(el.dataset.k); if(!v) return aviso('Campo vazio.','amar'); copiar(v); },
+  'copy-num':el=>{ const v=valorCampo(el.dataset.k).replace(/\D/g,''); if(!v) return aviso('Campo vazio.','amar'); copiar(v); },
+  'copy-extra':el=>{ const x=cur().extras.find(y=>y.id===el.dataset.id); if(x&&x.valor) copiar(x.valor,x.rotulo+': '+x.valor); },
+  'copy-global':el=>{ const x=S.globais.find(y=>y.id===el.dataset.id); if(x&&x.valor) copiar(x.valor,x.rotulo+': '+x.valor); else aviso('Valor vazio.','amar'); },
+  'add-extra':()=>{ cur().extras.push({id:uid(),rotulo:'',valor:''}); salvar(); render(); },
+  'del-extra':el=>{ const p=cur(); p.extras=p.extras.filter(x=>x.id!==el.dataset.id); salvar(); render(); },
+  'add-global':()=>{ S.globais.push({id:uid(),rotulo:'',valor:''}); salvar(); render(); },
+  'del-global':el=>{ S.globais=S.globais.filter(x=>x.id!==el.dataset.id); salvar(); render(); },
+  'add-nota':el=>{ const p=cur(), eid=el.dataset.eid, d=drafts[eid]; if(!d||!d.texto.trim()) return aviso('Escreva algo primeiro.','amar');
+    (p.notas[eid]=p.notas[eid]||[]).push({id:uid(),t:agora(),texto:d.texto.trim(),lembrete:!!d.lemb,resolvido:false});
+    log(`${d.lemb?'Lembrete':'Observação'} na etapa ${eid}: ${d.texto.trim().slice(0,100)}`); drafts[eid]={texto:'',lemb:false}; salvar(); render(); },
+  'del-nota':el=>{ const p=cur(); p.notas[el.dataset.eid]=(p.notas[el.dataset.eid]||[]).filter(n=>n.id!==el.dataset.nid); salvar(); render(); },
+  'novo':()=>{ novoProcesso(); salvar(); render(); window.scrollTo(0,0); },
+  'excluir':()=>{ const p=cur(); if(!confirm('Excluir o processo “'+(p.dados.nome||p.dados.cnpj||'sem nome')+'” deste navegador?\nSe quiser guardar, salve o JSON antes.')) return;
+    S.processos=S.processos.filter(x=>x.id!==p.id); if(!S.processos.length) novoProcesso(); S.atualId=S.processos[0].id; persistir(); render(); },
+  'abrir-proc':el=>{ S.atualId=el.dataset.id; persistir(); render(); window.scrollTo(0,0); },
+  'salvar-json':()=>{ const p=cur(); baixar(`processo_${slug(p.dados.nome||p.dados.cnpj)}_${new Date().toISOString().slice(0,10)}.json`,exportObj(p)); p.ultimoExport=agora(); persistir(); },
+  'salvar-todos':()=>{ baixar(`assistente-fiscal_todos_${new Date().toISOString().slice(0,10)}.json`,{app:'assistente-fiscal',versao:1,exportadoEm:agora(),processos:S.processos,globais:S.globais,modelo:S.modelo}); S.processos.forEach(p=>p.ultimoExport=agora()); persistir(); },
+  'abrir-json':()=>$('arq').click(),
+  'arquivo':escolherArquivo,
+  'editar-roteiro':()=>{ $('fonte').value=toFonte(cur().roteiro); $('erroFonte').textContent=''; $('dlg').showModal(); },
+  'fechar-roteiro':()=>$('dlg').close(),
+  'restaurar-roteiro':()=>{ if(confirm('Trocar o texto do editor pelo roteiro original? (Só vale depois de aplicar.)')) $('fonte').value=FONTE_PADRAO.trim()+'\n'; },
+  'aplicar-roteiro':()=>aplicarRoteiro(false),
+  'aplicar-modelo':()=>aplicarRoteiro(true)
+};
+function aplicarRoteiro(modelo){
+  const r=parseFonte($('fonte').value);
+  if(r.erros.length||!r.etapas.length){ $('erroFonte').textContent=r.erros.join('\n')||'O roteiro está vazio.'; return; }
+  const p=cur(); mapearIds(p.roteiro,r.etapas); p.roteiro=r.etapas;
+  if(modelo) S.modelo=clone(r.etapas);
+  log('Roteiro editado'+(modelo?' (e salvo como modelo)':'')); salvar(); $('dlg').close(); render();
+  aviso(modelo?'Roteiro aplicado e salvo como modelo dos próximos processos.':'Roteiro aplicado a este processo.');
+}
+
+/* ============================================================
+   JSON: exportar, importar, arquivo
+   ============================================================ */
+function exportObj(p){ return {app:'assistente-fiscal',versao:1,exportadoEm:agora(),processo:p,globais:S.globais}; }
+function baixar(nome,obj){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}));
+  a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  aviso('JSON salvo: '+nome);
+}
+function importar(obj){
+  const lista=obj&&obj.processo?[obj.processo]:(obj&&Array.isArray(obj.processos)?obj.processos:null);
+  if(!lista) throw new Error('arquivo não parece ser do Assistente Fiscal');
+  let n=0;
+  lista.forEach(pr=>{
+    normalizar(pr); const i=S.processos.findIndex(x=>x.id===pr.id);
+    if(i>=0){ if(!confirm('O processo “'+(pr.dados.nome||pr.dados.cnpj||'sem nome')+'” já existe aqui.\nSubstituir pela versão do arquivo?')) return; S.processos[i]=pr; }
+    else S.processos.push(pr);
+    S.atualId=pr.id; n++;
+  });
+  (obj.globais||[]).forEach(g=>{ if(g&&g.rotulo&&!S.globais.some(x=>x.rotulo===g.rotulo)) S.globais.push({id:uid(),rotulo:g.rotulo,valor:g.valor||''}); });
+  persistir(); render(); aviso(n+' processo(s) aberto(s) do JSON.');
+}
+async function escolherArquivo(){
+  try{
+    const p=cur();
+    fh=await window.showSaveFilePicker({suggestedName:`processo_${slug(p.dados.nome||p.dados.cnpj)}.json`,types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+    fhProc=p.id; await escreverArquivo(); aviso('Daqui para frente cada alteração também é gravada em '+fh.name);
+  }catch(e){ if(e.name!=='AbortError') aviso('Não consegui usar esse arquivo: '+e.message,'verm'); }
+}
+let escrevendo=false, pendente=false;
+async function escreverArquivo(){
+  if(!fh) return; if(escrevendo){pendente=true;return;} escrevendo=true;
+  try{ const p=S.processos.find(x=>x.id===fhProc); if(p){ const w=await fh.createWritable(); await w.write(JSON.stringify(exportObj(p),null,2)); await w.close(); p.ultimoExport=agora(); atualizarStatus(); } }
+  catch(e){ aviso('Falha ao gravar no arquivo: '+e.message,'verm'); fh=null; }
+  escrevendo=false; if(pendente){pendente=false;escreverArquivo();}
+}
+
+/* ============================================================
+   Eventos
+   ============================================================ */
+document.addEventListener('click',ev=>{ const el=ev.target.closest('[data-act]'); if(el&&acoes[el.dataset.act]) acoes[el.dataset.act](el,ev); });
+document.addEventListener('change',ev=>{
+  const el=ev.target, p=cur();
+  if(el.dataset.chk!==undefined){ alternarPasso(el.dataset.chk,el.dataset.eid,el.checked); return; }
+  if(el.dataset.resnota!==undefined){ const n=(p.notas[el.dataset.eid]||[]).find(x=>x.id===el.dataset.resnota); if(n){ n.resolvido=el.checked; log((n.resolvido?'Lembrete resolvido: ':'Lembrete reaberto: ')+n.texto.slice(0,80)); salvar(); render(); } return; }
+  if(el.dataset.draftlemb!==undefined){ (drafts[el.dataset.draftlemb]=drafts[el.dataset.draftlemb]||{texto:'',lemb:false}).lemb=el.checked; return; }
+  if(el.id==='selProc'){ S.atualId=el.value; persistir(); render(); window.scrollTo(0,0); return; }
+  if(el.id==='arq'){ const f=el.files[0]; el.value=''; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ try{ importar(JSON.parse(r.result)); }catch(e){ aviso('Não consegui abrir esse JSON: '+e.message,'verm'); } };
+    r.readAsText(f); return; }
+  if(el.dataset.campo){
+    const k=el.dataset.campo; let v=el.value;
+    if(CAMPOS[k].t==='cnpj'){ const d=v.replace(/\D/g,''); if(d.length===14){ v=d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'); el.value=v; p.dados[k]=v; } }
+    const antes=el.dataset.old||''; if(v!==antes){ log(`${CAMPOS[k].r}: “${antes}” → “${v}”`); el.dataset.old=v; }
+    salvar(); if(CAMPOS[k].t==='data') render(); else refreshChips();
+  }
+});
+document.addEventListener('focusin',ev=>{ const el=ev.target; if(el.dataset&&el.dataset.campo) el.dataset.old=cur().dados[el.dataset.campo]||''; });
+document.addEventListener('input',ev=>{
+  const el=ev.target, p=cur();
+  if(el.dataset.campo){ const k=el.dataset.campo; p.dados[k]=el.value; salvar(); refreshChips();
+    document.querySelectorAll(`[data-campo="${k}"]`).forEach(o=>{ if(o!==el) o.value=el.value; }); }
+  else if(el.dataset.draft!==undefined){ (drafts[el.dataset.draft]=drafts[el.dataset.draft]||{texto:'',lemb:false}).texto=el.value; }
+  else if(el.dataset.geral!==undefined){ p.notaGeral=el.value; salvar(); }
+  else if(el.dataset.ex){ const x=p.extras.find(y=>y.id===el.dataset.ex); if(x){ x[el.dataset.f]=el.value; salvar(); } }
+  else if(el.dataset.gl){ const x=S.globais.find(y=>y.id===el.dataset.gl); if(x){ x[el.dataset.f]=el.value; salvar(); } }
+});
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)&&ev.target.dataset&&ev.target.dataset.draft!==undefined){ ev.preventDefault(); acoes['add-nota']({dataset:{eid:ev.target.dataset.draft}}); }
+});
+new ResizeObserver(()=>document.documentElement.style.setProperty('--hfixo',$('fixo').offsetHeight+'px')).observe($('fixo'));
+let diaRender=hoje().getTime();
+setInterval(()=>{ // virou o dia: atualiza as contagens de prazo
+  if(hoje().getTime()!==diaRender&&!document.activeElement.matches('input,textarea,select')){ diaRender=hoje().getTime(); render(); }
+},60000);
+
+carregar(); persistir(); render();
+</script>
+</body>
+</html>
