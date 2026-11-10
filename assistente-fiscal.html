@@ -140,9 +140,7 @@ ul.passos{list-style:none;margin:8px 0;padding:0}
 .linha{display:grid;grid-template-columns:1fr 1.4fr auto auto;gap:4px;margin-bottom:4px}
 .linha input{min-width:0;padding:3px 5px;border:1px solid #9aa7b8;border-radius:6px}
 .card textarea{width:100%;min-height:90px;padding:6px;border:1px solid #9aa7b8;border-radius:6px;resize:vertical}
-.hist{font-size:12px;max-height:240px;overflow:auto}
-.hist div{padding:2px 0;border-bottom:1px solid #eef1f4}
-.hist time{color:#6b7785;margin-right:6px}
+.campo input.invalida{border:2px solid var(--verm);background:var(--verm-bg)}
 details>summary{cursor:pointer;font-weight:700;padding:8px 12px}
 #aviso{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;max-width:92vw;display:flex;flex-direction:column;gap:6px;align-items:center}
 .toast{background:#263238;color:#fff;padding:8px 14px;border-radius:8px;box-shadow:0 3px 12px rgba(0,0,0,.35);font-weight:600}
@@ -534,7 +532,7 @@ const ROTEIRO_PADRAO = (()=>{ const r=parseFonte(FONTE_PADRAO); r.etapas.forEach
 /* ============================================================
    Estado e persistência
    ============================================================ */
-let S, drafts={}, erroNavegador=false, arqH=null, arqEstado='nenhum', arqUltimo=null;
+let S, drafts={}, rascunhoData={}, erroNavegador=false, arqH=null, arqEstado='nenhum', arqUltimo=null;
 const cur = () => S.processos.find(p=>p.id===S.atualId);
 function globaisPadrao(){ return [
   {id:uid()+'a',rotulo:'Meu nome',valor:''},
@@ -568,7 +566,6 @@ function normalizar(p){
     const editado=p.roteiroEditado||p.historico.some(h=>/^Roteiro editado/.test(h.texto));
     if(!editado){ // roteiro padrão antigo: troca pelo novo, mantendo o que já foi marcado
       const nr=parseFonte(FONTE_PADRAO).etapas; mapearIds(p.roteiro,nr); p.roteiro=nr;
-      p.historico.push({t:agora(),texto:'Roteiro padrão atualizado (versão '+ROTEIRO_VERSAO+'); marcações mantidas'});
     }
     p.roteiroVersao=ROTEIRO_VERSAO;
   }
@@ -588,7 +585,7 @@ function persistir(){
   try{ localStorage.setItem(CHAVE,JSON.stringify(S)); erroNavegador=false; }catch(e){ erroNavegador=true; }
   arqEscrever(); atualizarStatus();
 }
-function log(texto){ const p=cur(); p.historico.push({t:agora(),texto}); }
+function log(){} // o painel de histórico foi retirado; marcações e observações já guardam data e hora
 function novoProcesso(){
   const p=normalizar({id:uid(),roteiro:clone(S.modelo||ROTEIRO_PADRAO),roteiroVersao:ROTEIRO_VERSAO,roteiroEditado:!!S.modelo});
   p.socios.push({id:uid(),nome:'',cpf:''}); // já vem uma linha de sócio pronta para preencher
@@ -683,9 +680,11 @@ function aviso(msg,cor){
 function htmlCampo(chave,req){
   const d=CAMPOS[chave]; if(!d) return '';
   if(d.t==='lista') return htmlSocios();
-  const v=cur().dados[chave]||'';
+  const v=cur().dados[chave]||'', isData=d.t==='data';
+  const mostra=isData?((!v&&rascunhoData[cur().id+'|'+chave]!==undefined)?rascunhoData[cur().id+'|'+chave]:fmtData(v)):v;
+  const inval=isData&&!v&&mostra.length===10;
   return `<div class="campo${req&&!v.trim()?' falta':''}"><label>${esc(d.r)}${req?' <b class="obrig">(obrigatório para concluir)</b>':''}</label>
-    <div class="lin"><input type="${d.t==='data'?'date':'text'}" data-campo="${chave}" value="${esc(v)}" autocomplete="off">
+    <div class="lin"><input type="text" ${isData?'inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" ':''}class="${inval?'invalida':''}" data-campo="${chave}" value="${esc(mostra)}" autocomplete="off">
     <button type="button" class="mini" data-act="copy-campo" data-k="${chave}" title="Copiar">Copiar</button>${d.t==='cnpj'?`<button type="button" class="mini" data-act="copy-num" data-k="${chave}" title="Copiar só os números">Só nº</button>`:''}</div></div>`;
 }
 function htmlSocios(){
@@ -796,7 +795,7 @@ function faixasDe(p,c){
     else F.push({cor:'lara',h:`⏳ ${esc(lab)} — ${esc(t)}. Etapas seguintes TRAVADAS. ${go}`});
   });
   if(c.todas&&c.faltando.length) F.push({cor:'verm',h:'⚠ Falta preencher (obrigatório para concluir): '+esc(c.faltando.map(x=>CAMPOS[x].r).join('; '))});
-  else if(c.todas) F.push({cor:'verde',h:'✔ FISCALIZAÇÃO CONCLUÍDA — todas as etapas foram marcadas. Salve o JSON para guardar o histórico.'});
+  else if(c.todas) F.push({cor:'verde',h:'✔ FISCALIZAÇÃO CONCLUÍDA — todas as etapas foram marcadas. Salve o JSON para guardar o processo.'});
   return F.map(f=>`<div class="faixa ${f.cor}">${f.h}</div>`).join('');
 }
 function htmlOutros(){
@@ -825,7 +824,6 @@ function htmlLateral(p){
     <div style="font-size:12px;color:#51606f;margin-top:6px">Não guarde senhas aqui.</div></div></div>`;
   h+=`<div class="card"><h2>Anotações gerais do processo</h2><div class="cc"><textarea data-geral placeholder="O que você pensou, dúvidas, pontos para voltar…">${esc(p.notaGeral)}</textarea></div></div>`;
   h+=htmlArquivoCard();
-  h+=`<div class="card"><details><summary>Histórico (${p.historico.length})</summary><div class="cc hist">${p.historico.slice().reverse().slice(0,300).map(x=>`<div><time>${esc(new Date(x.t).toLocaleString('pt-BR'))}</time>${esc(x.texto)}</div>`).join('')||'Nada ainda.'}</div></details></div>`;
   return h;
 }
 function renderTopo(p,c){
@@ -850,6 +848,12 @@ function atualizarStatus(){
 function render(){
   const p=cur(), c=calc(p);
   const lat=$('lateral'), st=lat.scrollTop;
+  // se um campo de dados está com o cursor, devolve o cursor a ele depois de redesenhar (senão não dá para digitar o ano inteiro)
+  const a=document.activeElement; let foco=null;
+  if(a&&a.dataset&&a.dataset.campo){
+    const ctx=a.closest('#lateral')?'#lateral':(a.closest('.etapa')?'#'+a.closest('.etapa').id:null);
+    if(ctx) foco={sel:ctx+' [data-campo="'+a.dataset.campo+'"]',pos:a.selectionStart};
+  }
   renderTopo(p,c);
   $('faixas').innerHTML=faixasDe(p,c);
   const o=htmlOutros(); const eo=$('outros'); eo.hidden=!o.length; eo.innerHTML=o.length?'⏳ <b>Prazos em outros processos:</b> '+o.join(' &nbsp;·&nbsp; '):'';
@@ -857,6 +861,7 @@ function render(){
   lat.innerHTML=htmlLateral(p);
   lat.scrollTop=st;
   window._calc=c;
+  if(foco){ const n=document.querySelector(foco.sel); if(n){ n.focus(); try{ n.setSelectionRange(foco.pos,foco.pos); }catch(e){} } }
 }
 
 /* ============================================================
@@ -974,7 +979,7 @@ function baixar(nome,obj){
   a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),3000);
   aviso('JSON baixado: '+nome);
 }
-const virgem=p=>!Object.keys(p.feito).length&&!Object.values(p.dados).some(Boolean)&&!Object.keys(p.notas).length&&!p.extras.length&&!p.socios.some(s=>s.nome||s.cpf)&&!p.notaGeral&&p.historico.length<=1;
+const virgem=p=>!Object.keys(p.feito).length&&!Object.values(p.dados).some(Boolean)&&!Object.keys(p.notas).length&&!p.extras.length&&!p.socios.some(s=>s.nome||s.cpf)&&!p.notaGeral;
 function limparVirgem(n){ if(n&&S.processos.length===1&&virgem(S.processos[0])) S.processos=[]; } // some o processo vazio criado automaticamente
 function escolherAtual(){
   if(!S.processos.length) novoProcesso();
@@ -1095,15 +1100,37 @@ document.addEventListener('change',ev=>{
   }
   if(el.dataset.campo){
     const k=el.dataset.campo; let v=el.value;
+    if(CAMPOS[k].t==='data'){ if(!p.dados[k]&&el.value.trim()) aviso('Data incompleta ou inválida: digite no formato dd/mm/aaaa (ano com 4 dígitos).','amar'); return; }
     if(CAMPOS[k].t==='cnpj'){ const d=v.replace(/\D/g,''); if(d.length===14){ v=d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'); el.value=v; p.dados[k]=v; } }
-    const antes=el.dataset.old||''; if(v!==antes){ log(`${CAMPOS[k].r}: “${antes}” → “${v}”`); el.dataset.old=v; }
-    salvar(); if(CAMPOS[k].t==='data') render(); else refreshChips();
+    salvar(); refreshChips();
   }
 });
-document.addEventListener('focusin',ev=>{ const el=ev.target; if(el.dataset&&el.dataset.campo) el.dataset.old=cur().dados[el.dataset.campo]||''; });
+/* Datas: texto dd/mm/aaaa com máscara; guarda aaaa-mm-dd quando a data está completa e válida */
+const mascaraData=d=>d.slice(0,2)+(d.length>2?'/'+d.slice(2,4):'')+(d.length>4?'/'+d.slice(4,8):'');
+function isoDeDigitos(d){
+  if(d.length!==8) return null;
+  const dd=+d.slice(0,2), mm=+d.slice(2,4), aa=+d.slice(4,8);
+  if(aa<1900||aa>2100||mm<1||mm>12||dd<1) return null;
+  const t=new Date(aa,mm-1,dd); if(t.getFullYear()!==aa||t.getMonth()!==mm-1||t.getDate()!==dd) return null;
+  return `${aa}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+}
+function campoData(el,k,p){
+  const bruto=el.value.trim(), colou=/^\d{4}-\d{2}-\d{2}$/.test(bruto);
+  const dig=colou?bruto.slice(8,10)+bruto.slice(5,7)+bruto.slice(0,4):bruto.replace(/\D/g,'').slice(0,8);
+  const txt=mascaraData(dig); el.value=txt;
+  const novo=isoDeDigitos(dig)||'', antes=p.dados[k]||'', rk=p.id+'|'+k;
+  p.dados[k]=novo;
+  if(novo||!dig.length) delete rascunhoData[rk]; else rascunhoData[rk]=txt; // guarda o que está sendo digitado
+  el.classList.toggle('invalida',dig.length===8&&!novo);
+  document.querySelectorAll(`[data-campo="${k}"]`).forEach(o=>{ if(o!==el) o.value=txt; });
+  salvar(); refreshChips();
+  if(novo!==antes) render(); // prazos, travas e faixas dependem das datas (o foco é devolvido ao campo)
+}
 document.addEventListener('input',ev=>{
   const el=ev.target, p=cur();
-  if(el.dataset.campo){ const k=el.dataset.campo; p.dados[k]=el.value; salvar(); refreshChips();
+  if(el.dataset.campo){ const k=el.dataset.campo;
+    if(CAMPOS[k].t==='data'){ campoData(el,k,p); return; }
+    p.dados[k]=el.value; salvar(); refreshChips();
     document.querySelectorAll(`[data-campo="${k}"]`).forEach(o=>{ if(o!==el) o.value=el.value; }); }
   else if(el.dataset.draft!==undefined){ (drafts[el.dataset.draft]=drafts[el.dataset.draft]||{texto:'',lemb:false}).texto=el.value; }
   else if(el.dataset.geral!==undefined){ p.notaGeral=el.value; salvar(); }

@@ -21,7 +21,7 @@ Um único arquivo, `assistente-fiscal.html`. Basta abri-lo no navegador (Chrome 
 - Tudo é salvo automaticamente no navegador.
 - **Arquivo de dados (JSON único):** no Chrome/Edge, “Arquivo de dados” (na lateral) liga a página a **um só arquivo** com todos os processos, os dados fixos e os modelos de e-mail. Ele é regravado a cada alteração, e o navegador lembra o arquivo (às vezes pede para reconectar). Ao ligar um arquivo que já existe, o conteúdo é juntado ao que está na página: de cada processo vale a versão mais recente.
 - **Baixar JSON** baixa só o processo aberto; **Baixar tudo agora** baixa tudo; **Abrir JSON** reabre qualquer um. Os nomes são sempre os mesmos, para você substituir em vez de acumular arquivos.
-- Cada processo guarda marcações com data e hora, dados, observações, histórico e o roteiro usado.
+- Cada processo guarda marcações com data e hora, dados, observações (também com data e hora) e o roteiro usado.
 - Os JSON têm CNPJ e dados sigilosos: o `.gitignore` já os mantém fora do repositório.
 
 ## Cores
